@@ -1,0 +1,39 @@
+# Segredos — NUNCA versionados. Espelho central em ..\.credenciais.env
+.env
+.env.local
+.env.*.local
+
+# Dependências e build
+node_modules/
+
+# Ferramenta de quem desenvolve não atravessa a rede (ERRO 26 dos anteparos:
+# um symlink em .claude/skills derrubou um empacotamento de deploy inteiro).
+.claude/
+.agents/
+
+# Sistema operacional / editor
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+node_modules*
+
+# cache do script de geracao
+node_modules/
+.cache-dominio*
+dist/
+
+# Capturas de tela dos scripts de validação ao vivo.
+#
+# 🔴 Antes eram nomes ENUMERADOS um a um — e duas capturas entraram no repositório
+# porque cada script novo acrescenta um nome que ninguém lembra de listar. Pasta
+# cobre a CLASSE: script novo escreve aqui e já está coberto, sem editar este arquivo.
+capturas/
+
+# O selo do gate é local: ele descreve ESTA árvore, e não faz sentido versionado.
+node_modules/.selo-do-gate
+
+# Bytecode do Python, gerado ao rodar os espelhos de scripts/vps/ localmente (S-064, 19/08/2026) —
+# artefato de execução, não código; a VPS de verdade nem usa este repositório (recebe por cópia).
+__pycache__/
+*.pyc
