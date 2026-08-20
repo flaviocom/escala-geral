@@ -31,8 +31,8 @@ sempre, acima de N pessoas, ou opt-in por cliente? Ver `escala-porteiros/BACKLOG
 | P1.3 | `AbaMalha.tsx` — editor de malha pela tela | ✅ 20/08 — ver auditoria abaixo |
 | P1.4 | `AbaMensagem.tsx` — editor de mensagem WhatsApp com pré-visualização | ✅ 20/08 — ver auditoria abaixo |
 | P1.5 | Varredura de 200 malhas sintéticas, zero falhas | ✅ 20/08 — `malha.varredura.test.ts` |
-| P1.6 | Auditoria independente (agente cego) das duas telas novas | 🔶 em andamento — resultado ainda não registrado aqui |
-| P1.7 | Comparação lado a lado: mensagem WhatsApp em produção × neste repositório | ⏳ pendente |
+| P1.6 | Auditoria independente (agente cego) das duas telas novas | ✅ 20/08 — achou 1 defeito real (`config.mensagens` sumia em silêncio ao recarregar), corrigido com 2 testes de regressão. Ver `src/dados/carregar.ts` |
+| P1.7 | Comparação lado a lado: mensagem WhatsApp em produção × neste repositório | ✅ 20/08 |
 
 ## P2 — Declarado, não construído ⚪
 
