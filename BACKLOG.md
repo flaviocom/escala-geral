@@ -38,7 +38,7 @@ sempre, acima de N pessoas, ou opt-in por cliente? Ver `escala-porteiros/BACKLOG
 | P1.10 | Botão "Tirar da escala" confundia com "fechar o cartão" (X solto = convenção de fechar) | ✅ 20/08 — ícone pessoa-com-menos + rótulo visível |
 | P1.11 | Varredura de malha ampliada — 2000 cenários (era 200), elenco até 60 (era 26), + 6 casos-limite explícitos | ✅ 20/08 — pedido explícito: "muito mais parrudo, exaustivamente testado" |
 | P1.12 | 🔴 **2ª auditoria achou uma SEGUNDA colisão da mesma classe** — `App.tsx` gravava `myBrotherId`/`showMyShiftsOnly` sem namespace, mesmo depois da correção do P1.8 | ✅ 20/08 — corrigido dentro das 3 funções de preferência (não em cada chamada); teste `cofre.test.ts` que tinha virado vazio também corrigido, com guarda contra regressão silenciosa |
-| P1.13 | 3ª auditoria — varredura total de `localStorage`/`sessionStorage`/cookies/IndexedDB no repositório inteiro | 🔶 em andamento |
+| P1.13 | 3ª auditoria — varredura total de `localStorage`/`sessionStorage`/cookies/IndexedDB no repositório inteiro | ✅ 20/08 — **FECHADO.** Só 4 arquivos usam `localStorage`, todos namespaced; zero uso de sessionStorage/cookies/IndexedDB/service worker; teste de regressão simulado e confirmado que detecta a volta do bug |
 
 ## P2 — Declarado, não construído ⚪
 
