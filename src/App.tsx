@@ -34,9 +34,21 @@ interface AppProps {
  * Falhar em silêncio aqui é a decisão certa, e é diferente de falhar em silêncio num dado: a pessoa
  * percebe na hora que a preferência não ficou guardada, e pode escolher de novo.
  */
+/**
+ * 🔴 SEGUNDA COLISÃO DA MESMA CLASSE, achada por auditoria independente, 20/08/2026 — depois de
+ * corrigir `cofre.ts` e `rascunho.ts` (chave cravada como `'escala-porteiros:...'`), este arquivo
+ * ainda gravava `myBrotherId`/`showMyShiftsOnly` SEM namespace nenhum — mesma origem
+ * (`flaviocom.github.io`), mesmo `localStorage`, mesma colisão: abrir a demo lia/gravava a
+ * preferência "Minha Escala" de quem estava usando a produção, e vice-versa.
+ *
+ * Corrigido no ÚNICO lugar certo desta vez: dentro das três funções, não em cada chamada — assim
+ * nenhum uso futuro de `lerPreferencia`/`gravarPreferencia` pode esquecer o namespace de novo.
+ */
+const PREFIXO = import.meta.env.BASE_URL
+
 function lerPreferencia(chave: string): string | null {
   try {
-    return localStorage.getItem(chave);
+    return localStorage.getItem(PREFIXO + chave);
   } catch {
     return null;
   }
@@ -44,7 +56,7 @@ function lerPreferencia(chave: string): string | null {
 
 function gravarPreferencia(chave: string, valor: string): void {
   try {
-    localStorage.setItem(chave, valor);
+    localStorage.setItem(PREFIXO + chave, valor);
   } catch {
     /* preferência não guardada — a tela continua funcionando exatamente igual */
   }
@@ -52,7 +64,7 @@ function gravarPreferencia(chave: string, valor: string): void {
 
 function apagarPreferencia(chave: string): void {
   try {
-    localStorage.removeItem(chave);
+    localStorage.removeItem(PREFIXO + chave);
   } catch {
     /* idem */
   }

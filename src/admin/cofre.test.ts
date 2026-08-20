@@ -51,8 +51,16 @@ describe('cofre — a senha é a chave, não uma comparação', () => {
   })
 
   it('o token NÃO fica legível no armazenamento', async () => {
+    /*
+     * 🔴 Chave antiga aqui (`'escala-porteiros:cofre'`) virava teste VAZIO depois da correção de
+     * 20/08/2026 (chave real passou a ser `${BASE_URL}:cofre`) — auditoria independente achou:
+     * `getItem` da chave errada sempre devolve `null`, `bruto` vira `''`, e `not.toContain` passa
+     * trivialmente sobre string vazia, sem checar nada de verdade. Usa a mesma expressão de
+     * `cofre.ts`, não um literal solto — se a chave mudar de novo, o teste muda junto.
+     */
     await gravarCofre(SENHA, SEGREDOS)
-    const bruto = localStorage.getItem('escala-porteiros:cofre') ?? ''
+    const bruto = localStorage.getItem(`${import.meta.env.BASE_URL}:cofre`) ?? ''
+    expect(bruto).not.toBe('') // prova que achou o registro certo — sem isso, o teste abaixo é vazio
     expect(bruto).not.toContain(SEGREDOS.tokenGitHub)
     expect(bruto).not.toContain(SEGREDOS.chaveMotor)
   })
