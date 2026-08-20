@@ -78,6 +78,15 @@ export function completarConfig(lido: ConfigLida | null | undefined): Configurac
         plural: pessoa.plural?.trim() || CONFIG_PADRAO.identidade.pessoa.plural,
       },
     },
+    /**
+     * 🔴 ACHADO POR AUDITORIA INDEPENDENTE, 20/08/2026 (S-068/S-069) — a MESMA classe de defeito
+     * que esta função existe para evitar, cometida dentro dela mesma. `mensagens` foi acrescentado
+     * a `Configuracao` (tipos.ts) mas não entrava neste retorno: qualquer edição feita em
+     * `AbaMensagem.tsx` e publicada com sucesso em `config.json` desaparecia em silêncio no
+     * próximo carregamento da página — sem erro, sem aviso, voltava ao modelo de fábrica. Opcional
+     * por natureza (nem todo cliente edita a mensagem), então `??`, nunca `||`.
+     */
+    mensagens: c.mensagens ?? CONFIG_PADRAO.mensagens,
   }
 }
 

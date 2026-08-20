@@ -79,4 +79,20 @@ describe('completarConfig — o arquivo publicado pode estar velho', () => {
     const c = completarConfig({ identidade: { titulo: 'Escala Porteiros', subtitulo: 'JD. São Luiz', pessoa: { singular: 'Irmão', plural: 'irmãos' } } })
     expect(c.identidade.pessoa).toEqual({ singular: 'Irmão', plural: 'irmãos' })
   })
+
+  /**
+   * 🔴 Achado por auditoria independente, 20/08/2026 (S-068/S-069) — `mensagens` foi acrescentado
+   * ao tipo `Configuracao` mas não entrava neste retorno: uma mensagem editada em `AbaMensagem.tsx`
+   * e publicada com sucesso em `config.json` sumia em silêncio no próximo carregamento da página.
+   * Mesma classe de defeito que esta função inteira existe para evitar — cometida dentro dela.
+   */
+  it('mensagens do WhatsApp sobrevivem ao carregar — não somem em silêncio', () => {
+    const c = completarConfig({ mensagens: { resumoSemanal: 'Modelo do cliente', vespera: 'Véspera do cliente' } })
+    expect(c.mensagens).toEqual({ resumoSemanal: 'Modelo do cliente', vespera: 'Véspera do cliente' })
+  })
+
+  it('sem mensagens no arquivo, o campo fica ausente (não inventa modelo)', () => {
+    const c = completarConfig(null)
+    expect(c.mensagens).toBeUndefined()
+  })
 })
