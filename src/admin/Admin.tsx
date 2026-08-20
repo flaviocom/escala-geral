@@ -11,7 +11,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle, CheckCircle, Download, Eye, EyeOff, KeyRound, Loader2, LogOut, Phone, Plus, RefreshCw,
-  History, RotateCcw, ShieldCheck, Trash2, Upload, X, XCircle,
+  History, RotateCcw, ShieldCheck, Trash2, Upload, UserCheck, UserMinus, XCircle,
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { abrirCofre, apagarCofre, cofreExiste, exportarCofre, gravarCofre, importarCofre, type Segredos } from './cofre'
@@ -789,6 +789,90 @@ export const Admin: React.FC<{ dados: DadosPublicados }> = ({ dados: dadosInicia
 // ELENCO
 // ===========================================================================
 
+/**
+ * LOGOTIPO — envio, pré-visualização e remoção pela tela — S-068/S-069, 20/08/2026 (P4.w-5).
+ *
+ * Pesquisa antes de construir (padrão do método): SaaS UI/UX 2026 (uploadcare.com/blog,
+ * saasui.design) recomenda pré-visualização ANTES de confirmar, remoção explícita de um clique,
+ * e mensagem de erro que diz O QUE deu errado — as três coisas abaixo.
+ *
+ * Guardado como `data:image/...;base64,...` direto em `config.identidade.logo` (ver a nota em
+ * `App.tsx`) — publica junto do resto do `config.json`, sem arquivo separado. Por isso o limite de
+ * tamanho é conservador: um logo de 200 KB vira ~270 KB em base64, dentro do `config.json` que hoje
+ * pesa poucos KB.
+ */
+const LIMITE_LOGO_BYTES = 200 * 1024
+
+const EditorDeLogo: React.FC<{ config: Configuracao; aoMudarConfig: (c: Configuracao) => void }> = ({
+  config,
+  aoMudarConfig,
+}) => {
+  const [erro, setErro] = useState<string | null>(null)
+  const logo = config.identidade.logo
+
+  const escolher = (arquivo: File) => {
+    setErro(null)
+    if (!arquivo.type.startsWith('image/')) {
+      setErro(`"${arquivo.name}" não é uma imagem (${arquivo.type || 'tipo desconhecido'}). Envie PNG, JPG, SVG ou WebP.`)
+      return
+    }
+    if (arquivo.size > LIMITE_LOGO_BYTES) {
+      setErro(`"${arquivo.name}" tem ${(arquivo.size / 1024).toFixed(0)} KB — o limite é ${LIMITE_LOGO_BYTES / 1024} KB. Reduza o tamanho e envie de novo.`)
+      return
+    }
+    const leitor = new FileReader()
+    leitor.onload = () => {
+      aoMudarConfig({ ...config, identidade: { ...config.identidade, logo: String(leitor.result) } })
+    }
+    leitor.onerror = () => setErro(`Não consegui ler "${arquivo.name}". Tente outro arquivo.`)
+    leitor.readAsDataURL(arquivo)
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-200">
+      <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Logotipo (opcional)</span>
+      <p className="mt-1 text-xs text-gray-500">
+        Aparece no cabeçalho do site, desktop e celular. Vazio = sem logotipo, e a tela se arranja sozinha.
+      </p>
+
+      <div className="mt-2 flex items-center gap-3">
+        {logo ? (
+          <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-3 py-2">
+            <img src={logo} alt="Pré-visualização do logotipo" className="h-10 w-auto max-w-[140px] object-contain" />
+            <button
+              type="button"
+              onClick={() => aoMudarConfig({ ...config, identidade: { ...config.identidade, logo: '' } })}
+              title="Remover logotipo"
+              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <label className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-medium hover:bg-indigo-100 cursor-pointer">
+            <Upload className="w-3.5 h-3.5" />
+            Enviar logotipo
+            <input
+              id="identidade-logo"
+              name="identidade-logo"
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => {
+                const arquivo = e.target.files?.[0]
+                if (arquivo) escolher(arquivo)
+                e.target.value = ''
+              }}
+            />
+          </label>
+        )}
+      </div>
+
+      {erro && <p className="mt-2 text-xs text-red-600" role="alert">{erro}</p>}
+    </div>
+  )
+}
+
 const AbaElenco: React.FC<{ pessoas: Pessoa[]; aoMudar: (p: Pessoa[]) => void }> = ({ pessoas, aoMudar }) => {
   const [novoNome, setNovoNome] = useState('')
 
@@ -817,7 +901,7 @@ const AbaElenco: React.FC<{ pessoas: Pessoa[]; aoMudar: (p: Pessoa[]) => void }>
     <>
       <Cartao
         titulo="Elenco"
-        subtitulo="O X tira a pessoa da escala. Ela não é apagada — os blocos já publicados continuam mostrando o nome dela."
+        subtitulo={'"Tirar" remove da escala, mas não apaga — os blocos já publicados continuam mostrando o nome dela.'}
       >
         <div className="flex gap-2 mb-5">
           <input
@@ -901,9 +985,21 @@ const CartaoPessoa: React.FC<{ pessoa: Pessoa; aoAlterar: (m: (p: Pessoa) => Pes
         <button
           onClick={() => aoAlterar((p) => ({ ...p, ativo: !p.ativo }))}
           title={pessoa.ativo ? 'Tirar da escala' : 'Trazer de volta'}
-          className={clsx('p-2 rounded-lg', pessoa.ativo ? 'text-red-500 hover:bg-red-50' : 'text-green-600 hover:bg-green-50')}
+          /*
+           * 🔴 CONFUNDIA "tirar da escala" COM "fechar o cartão" — achado ao vivo pelo Flavio,
+           * 20/08/2026. Um X solto no canto superior direito de um cartão expansível é a convenção
+           * universal de FECHAR; aqui ele fazia uma coisa bem mais séria (tirar a pessoa da escala).
+           * Ícone trocado por pessoa-com-menos/pessoa-com-check — head/torso reconhecível como
+           * PESSOA, não como controle de janela — e o texto some do botão fechar (que é só o clique
+           * no nome, sem X nenhum por perto).
+           */
+          className={clsx(
+            'flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium shrink-0',
+            pessoa.ativo ? 'text-red-500 hover:bg-red-50' : 'text-green-600 hover:bg-green-50',
+          )}
         >
-          {pessoa.ativo ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+          {pessoa.ativo ? <UserMinus className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+          <span className="hidden sm:inline">{pessoa.ativo ? 'Tirar' : 'Trazer de volta'}</span>
         </button>
       </div>
 
@@ -1984,6 +2080,8 @@ const AbaGerar: React.FC<{
               />
             </label>
           </div>
+
+          <EditorDeLogo config={config} aoMudarConfig={aoMudarConfig} />
         </details>
         {/*
           🔴 "GERAR OUTRA COMBINAÇÃO" — o pedido do Flavio de poder recusar e pedir outra.

@@ -26,7 +26,11 @@
  */
 import type { Configuracao, Pessoa } from '../dominio/tipos'
 
-const CHAVE = 'escala-porteiros:rascunho:v1'
+/**
+ * 🔴 Mesma correção de `cofre.ts` — a chave era cravada como `'escala-porteiros:rascunho:v1'` e
+ * colidia entre repositórios servidos na mesma origem (`flaviocom.github.io`). Ver o comentário lá.
+ */
+const CHAVE = `${import.meta.env.BASE_URL}:rascunho:v1`
 
 export interface Rascunho {
   de: string

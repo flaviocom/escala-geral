@@ -15,6 +15,7 @@ import { format, parseISO, addDays, startOfWeek, startOfMonth, endOfMonth, start
 import { ptBR } from 'date-fns/locale';
 import { clsx } from 'clsx';
 import { primeiraLetra } from './utils/nomes';
+import { resolverLogo } from './utils/logo';
 
 interface AppProps {
   /** A escala já publicada, vinda dos arquivos de dados — não mais gerada no navegador. */
@@ -68,7 +69,8 @@ function App({ shifts, dados }: AppProps) {
       `BASE_URL` é obrigatório: o GitHub Pages serve este projeto sob `/escala-porteiros/`, e um
       caminho sem ele apontaria para a raiz do domínio. Vazio = sem emblema, e a tela se arranja.
     */
-    logo: dados.config.identidade.logo ? `${import.meta.env.BASE_URL}dados/${dados.config.identidade.logo}` : '',
+    // Upload de logo pela tela — S-068/S-069 (P4.w). Ver `src/utils/logo.ts` para as duas convenções.
+    logo: resolverLogo(dados.config.identidade.logo, import.meta.env.BASE_URL),
   };
   const [selectedBrotherIds, setSelectedBrotherIds] = useState<string[]>([]);
   const [selectedMonthStrs, setSelectedMonthStrs] = useState<string[]>([]);

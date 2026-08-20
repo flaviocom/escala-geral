@@ -21,7 +21,17 @@
  * publicação continua sendo o escopo do token: conteúdo, num único repositório, revogável num clique.
  */
 
-const CHAVE_ARMAZENAMENTO = 'escala-porteiros:cofre'
+/**
+ * 🔴 A CHAVE ERA CRAVADA COMO `'escala-porteiros:cofre'` — achado ao vivo pelo Flavio, 20/08/2026,
+ * abrindo o `escala-geral` (repositório novo, mesma conta GitHub) e vendo o cofre e o rascunho DO
+ * OUTRO repositório. `localStorage` é isolado por ORIGEM (`https://flaviocom.github.io`), não por
+ * caminho — os dois sites vivem na MESMA origem (`.../escala-porteiros/` e `.../escala-geral/`), e
+ * uma chave cravada colide entre eles. Corrigido para nascer namespaced pelo `base` do próprio
+ * build (`import.meta.env.BASE_URL`, ex.: `/escala-geral/`) — cada repositório-cliente, com seu
+ * próprio `base` no `vite.config.ts` (já obrigatório para o GitHub Pages funcionar), ganha isolamento
+ * automático, sem precisar editar esta constante a cada clone.
+ */
+const CHAVE_ARMAZENAMENTO = `${import.meta.env.BASE_URL}:cofre`
 const ITERACOES = 310_000
 
 export interface Segredos {

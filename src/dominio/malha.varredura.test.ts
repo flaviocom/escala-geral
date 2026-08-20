@@ -67,8 +67,10 @@ const CONFIG_BASE: Omit<Configuracao, 'malhaPadrao'> = {
   identidade: { titulo: 'Teste', subtitulo: 'Teste', logo: '', pessoa: { singular: 'Pessoa', plural: 'pessoas' } },
 }
 
-describe('varredura SEMEADA de malha — 200 formas sintéticas, o mesmo contrato de sempre', () => {
-  const N = 200
+describe('varredura SEMEADA de malha — 2000 formas sintéticas, o mesmo contrato de sempre', () => {
+  // 🔴 "Este motor deve ser exaustivamente testado e muito mais parrudo que o do escala-porteiros"
+  // — o Flavio, 20/08/2026. Subido de 200 para 2000 no mesmo pedido; elenco até 60 (era 26).
+  const N = 2000
   const rnd = sorteioSemeado(20260820)
   const falhas: string[] = []
   let geradas = 0
@@ -76,7 +78,7 @@ describe('varredura SEMEADA de malha — 200 formas sintéticas, o mesmo contrat
 
   for (let i = 0; i < N; i++) {
     const malha = malhaAleatoria(rnd)
-    const elenco = elencoAleatorio(rnd, 6 + Math.floor(rnd() * 20))
+    const elenco = elencoAleatorio(rnd, 6 + Math.floor(rnd() * 55))
     const inicio = '2026-09-01'
     const fim = '2026-11-30'
     const grade = construirGrade({ inicio, fim, malha, capacidadePadrao: CONFIG_BASE.capacidadePadrao })
@@ -114,5 +116,74 @@ describe('varredura SEMEADA de malha — 200 formas sintéticas, o mesmo contrat
   it('a varredura testou de verdade (não só declarou impossível o tempo todo)', () => {
     expect(geradas).toBeGreaterThan(N * 0.5)
     expect(declaradasImpossiveis).toBeLessThan(N)
+  })
+})
+
+/**
+ * CASOS-LIMITE EXPLÍCITOS — não sorteados, escolhidos por serem a classe de entrada que costuma
+ * quebrar geradores gulosos (ver `PESQUISA_2026-08-07-metodos-rostering.md` §4). A varredura
+ * semeada acima cobre a MÉDIA; estes cobrem as PONTAS.
+ */
+describe('casos-limite — as pontas que a varredura semeada não visita por acaso', () => {
+  function rodar(elenco: Pessoa[], malha: Malha, inicio: string, fim: string, capacidadePadrao = 2) {
+    const grade = construirGrade({ inicio, fim, malha, capacidadePadrao })
+    const config: Configuracao = { ...CONFIG_BASE, capacidadePadrao, malhaPadrao: malha }
+    const r = gerar({
+      inicio, fim, grade, pessoas: elenco, elenco: elenco.map((p) => p.id), malha,
+      ultimaEscalaAnterior: {}, escalasPorMesAnterior: {},
+    })
+    return { r, grade, config }
+  }
+
+  it('malha MÁXIMA — os 7 dias, os 3 turnos, todo dia — não trava nem estoura', () => {
+    const malha: Malha = { regras: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ diaSemana: d, turnos: TURNOS as TipoTurno[] })) }
+    const elenco = elencoAleatorio(sorteioSemeado(1), 40)
+    const { r, config } = rodar(elenco, malha, '2026-09-01', '2026-09-30')
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(validar({ bloco: r.bloco, pessoas: elenco, ultimaEscalaAnterior: {}, config }).falhasDuras).toEqual([])
+    }
+  })
+
+  it('elenco de 1 pessoa só — ou gera (ela cobre tudo) ou declara impossível, nunca quebra', () => {
+    const malha: Malha = { regras: [{ diaSemana: 0, turnos: ['NOITE'] }] }
+    const elenco = elencoAleatorio(sorteioSemeado(2), 1)
+    const { r } = rodar(elenco, malha, '2026-09-01', '2026-09-30', 1)
+    expect(typeof r.ok).toBe('boolean')
+    if (!r.ok) expect(r.motivo).toBeTruthy()
+  })
+
+  it('elenco vazio — declara impossível, nunca gera turno fantasma', () => {
+    const malha: Malha = { regras: [{ diaSemana: 0, turnos: ['NOITE'] }] }
+    const { r } = rodar([], malha, '2026-09-01', '2026-09-30', 1)
+    expect(r.ok).toBe(false)
+  })
+
+  it('período PLURIANUAL (3 anos) com malha esparsa — não trava o processo', () => {
+    const malha: Malha = { regras: [{ diaSemana: 6, turnos: ['NOITE'], somenteOcorrencia: 1 }] } // só 1º sábado do mês
+    const elenco = elencoAleatorio(sorteioSemeado(3), 12)
+    const t0 = performance.now()
+    const { r, config } = rodar(elenco, malha, '2026-01-01', '2028-12-31', 2)
+    expect(performance.now() - t0).toBeLessThan(15_000) // não é sobre velocidade ótima, é sobre NÃO TRAVAR
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(conferirPorFora(r.bloco, elenco, config).comFuro).toEqual([])
+    }
+  })
+
+  it('capacidade 1 (o mínimo que faz sentido) — gera sem dividir por zero em lugar nenhum', () => {
+    const malha: Malha = { regras: [{ diaSemana: 0, turnos: ['NOITE'], capacidade: 1 }] }
+    const elenco = elencoAleatorio(sorteioSemeado(4), 8)
+    const { r, config } = rodar(elenco, malha, '2026-09-01', '2026-12-31', 1)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(validar({ bloco: r.bloco, pessoas: elenco, ultimaEscalaAnterior: {}, config }).falhasDuras).toEqual([])
+  })
+
+  it('malha com UM dia só (evento único da semana) — o caso mais esparso, real em muitos clientes', () => {
+    const malha: Malha = { regras: [{ diaSemana: 2, turnos: ['MANHA'] }] }
+    const elenco = elencoAleatorio(sorteioSemeado(5), 10)
+    const { r, config } = rodar(elenco, malha, '2026-09-01', '2027-02-28', 2)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(conferirPorFora(r.bloco, elenco, config).comFuro).toEqual([])
   })
 })
