@@ -30,11 +30,13 @@ import { conferirPorFora } from '../dominio/conferencia-independente'
 import { conferirBuracoNaEscala, conferirPassadoPreservado, conferirReversao, cotaMensalJaPublicada, montarBlocosParaPublicar, publicacaoImpedida, travaDeDataRetroativa } from '../dominio/blocos'
 import { diaDaSemana, diferencaEmDias, ehDataValida, formatarBR, sugerirFim, hojeSaoPaulo, NOMES_DIA, NOMES_DIA_CURTO, ROTULO_MES, somarDias } from '../dominio/datas'
 import { AbaAjustar } from './AbaAjustar'
+import { AbaMalha } from './AbaMalha'
+import { AbaMensagem } from './AbaMensagem'
 import { lerRascunho, gravarRascunho, limparRascunho, type Rascunho } from './rascunho'
 import { arbitrar, auditar, medir, pedirProposta, type Placar, type ProgressoMotor } from './motor'
 import { Sparkles } from 'lucide-react'
 
-type Aba = 'elenco' | 'gerar' | 'ajustar' | 'conferir' | 'publicar'
+type Aba = 'elenco' | 'malha' | 'mensagem' | 'gerar' | 'ajustar' | 'conferir' | 'publicar'
 
 /**
  * 🔴 P4.1 — UMA GRAVAÇÃO POR VEZ, e a trava mora FORA do componente.
@@ -670,6 +672,8 @@ export const Admin: React.FC<{ dados: DadosPublicados }> = ({ dados: dadosInicia
 
   const abas: { id: Aba; texto: string; travada?: boolean }[] = [
     { id: 'elenco', texto: 'Elenco' },
+    { id: 'malha', texto: 'Malha' },
+    { id: 'mensagem', texto: 'Mensagem' },
     { id: 'gerar', texto: 'Gerar escala' },
     { id: 'ajustar', texto: 'Ajustar', travada: !blocoNovo },
     { id: 'conferir', texto: 'Conferir por fora', travada: !blocoNovo },
@@ -721,6 +725,8 @@ export const Admin: React.FC<{ dados: DadosPublicados }> = ({ dados: dadosInicia
 
       <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
         {aba === 'elenco' && <AbaElenco pessoas={pessoas} aoMudar={setPessoas} />}
+        {aba === 'malha' && <AbaMalha config={config} aoMudarConfig={setConfig} />}
+        {aba === 'mensagem' && <AbaMensagem config={config} aoMudarConfig={setConfig} />}
         {aba === 'gerar' && (
           <AbaGerar
             dados={dados}

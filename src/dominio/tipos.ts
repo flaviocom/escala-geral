@@ -107,6 +107,16 @@ export interface RegraMalha {
   rotulo?: string
   /** Capacidade específica desta regra. Ausente = `capacidadePadrao` da configuração. */
   capacidade?: number
+  /**
+   * Horário real, só para EXIBIÇÃO na tela e na mensagem — S-068/S-069, 20/08/2026 (P4.w).
+   *
+   * 🔴 NÃO participa do encaixe: quem decide em qual `Turno` (MANHA/TARDE/NOITE) uma pessoa cabe
+   * continua sendo só `turnos`. Mudar isso para hora real de verdade (ex.: dois turnos no mesmo dia
+   * que colidem por horário) é mudança de MOTOR, fora do escopo desta rodada — aqui o horário é
+   * texto informativo (`"09:00"`), livre, sem validação de formato.
+   */
+  horaInicio?: string
+  horaFim?: string
 }
 
 export interface Malha {
@@ -235,5 +245,21 @@ export interface Configuracao {
       /** Como aparece em contagem, minúsculo: "irmãos", "funcionários". */
       plural: string
     }
+  }
+  /**
+   * Modelos de mensagem de lembrete (WhatsApp), editáveis pela tela — S-068/S-069, 20/08/2026.
+   *
+   * Ausente ou vazio = a tela mostra um modelo de exemplo, mas o produto continua funcionando sem
+   * lembrete nenhum. Formatação usa a sintaxe oficial do WhatsApp: `*negrito*`, `_itálico_`,
+   * `~riscado~`. Placeholders substituídos na hora de enviar: `{{nome}}`, `{{dias}}`, `{{data}}`.
+   *
+   * Isto grava o TEXTO do modelo — não dispara mensagem nenhuma. O disparo real depende de um
+   * agendador com um número do WhatsApp por trás (fora do escopo deste produto estático).
+   */
+  mensagens?: {
+    /** Enviada uma vez por semana, resumindo todos os dias em que a pessoa está escalada. */
+    resumoSemanal: string
+    /** Enviada na véspera do dia em que a pessoa está escalada. */
+    vespera: string
   }
 }
