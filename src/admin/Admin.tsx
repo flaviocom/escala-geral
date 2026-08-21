@@ -808,6 +808,7 @@ const EditorDeLogo: React.FC<{ config: Configuracao; aoMudarConfig: (c: Configur
   aoMudarConfig,
 }) => {
   const [erro, setErro] = useState<string | null>(null)
+  const [arrastando, setArrastando] = useState(false)
   const logo = config.identidade.logo
 
   const escolher = (arquivo: File) => {
@@ -849,9 +850,29 @@ const EditorDeLogo: React.FC<{ config: Configuracao; aoMudarConfig: (c: Configur
             </button>
           </div>
         ) : (
-          <label className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-medium hover:bg-indigo-100 cursor-pointer">
-            <Upload className="w-3.5 h-3.5" />
-            Enviar logotipo
+          /*
+           * 🔴 SÓ CLIQUE, SEM ARRASTAR — achado ao vivo pelo Flavio, 20/08/2026, mesma rodada do
+           * vazamento de dado. Arrastar-e-soltar é o padrão de qualquer uploader de imagem em 2026
+           * (a pesquisa que já embasou este componente — uploadcare.com, saasui.design — cobre
+           * preview/erro/remoção, mas o gesto de arrastar ficou de fora na primeira versão). A
+           * label continua clicável (não é OU um OU outro) — arrastar é um atalho, não substitui.
+           */
+          <label
+            onDragOver={(e) => { e.preventDefault(); setArrastando(true) }}
+            onDragLeave={() => setArrastando(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setArrastando(false)
+              const arquivo = e.dataTransfer.files?.[0]
+              if (arquivo) escolher(arquivo)
+            }}
+            className={clsx(
+              'flex flex-col items-center justify-center gap-1.5 w-full px-4 py-6 rounded-xl border-2 border-dashed text-xs font-medium cursor-pointer transition-colors',
+              arrastando ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-300 text-gray-500 hover:border-indigo-300 hover:bg-gray-50',
+            )}
+          >
+            <Upload className="w-4 h-4" />
+            {arrastando ? 'Solte a imagem aqui' : 'Clique para enviar, ou arraste a imagem aqui'}
             <input
               id="identidade-logo"
               name="identidade-logo"

@@ -223,7 +223,7 @@ export const AbaMalha: React.FC<{ config: Configuracao; aoMudarConfig: (c: Confi
                 </label>
 
                 <label className="text-xs text-gray-600">
-                  Rótulo (opcional) — ex.: "ENSAIO"
+                  Rótulo (opcional) — ex.: "TROCA DE TURNO"
                   <input
                     id={`malha-rotulo-${i}`}
                     name={`malha-rotulo-${i}`}
