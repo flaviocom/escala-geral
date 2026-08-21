@@ -40,7 +40,9 @@ sempre, acima de N pessoas, ou opt-in por cliente? Ver `escala-porteiros/BACKLOG
 | P1.12 | 🔴 **2ª auditoria achou uma SEGUNDA colisão da mesma classe** — `App.tsx` gravava `myBrotherId`/`showMyShiftsOnly` sem namespace, mesmo depois da correção do P1.8 | ✅ 20/08 — corrigido dentro das 3 funções de preferência (não em cada chamada); teste `cofre.test.ts` que tinha virado vazio também corrigido, com guarda contra regressão silenciosa |
 | P1.13 | 3ª auditoria — varredura total de `localStorage`/`sessionStorage`/cookies/IndexedDB no repositório inteiro | ✅ 20/08 — **FECHADO.** Só 4 arquivos usam `localStorage`, todos namespaced; zero uso de sessionStorage/cookies/IndexedDB/service worker; teste de regressão simulado e confirmado que detecta a volta do bug |
 | P1.14 | 4ª auditoria — motor de hora real (P2.1/P2.5), agente cego mandado a refutar | ✅ 20/08 — achou **4 defeitos reais**, todos corrigidos com teste de regressão reproduzindo o cenário exato de cada um. Ver "4ª auditoria — hora real" abaixo. 432/432 testes, typecheck/gate/build limpos |
-| P1.15 | 5ª auditoria — verificação cética das 4 correções do P1.14 | ✅ 20/08 — achou **1 regressão real introduzida pela própria correção do vira-a-noite** (`horaInicio === horaFim` bloqueava o dia inteiro) + 1 lacuna de paridade D9×conferência independente na direção contrária. Ambos corrigidos na origem (`malha.ts`), não só na tela. Ver "5ª auditoria" abaixo. 435/435 testes, typecheck/gate/build limpos. **6ª auditoria** (verificação cética desta correção) disparada, resultado pendente |
+| P1.15 | 5ª auditoria — verificação cética das 4 correções do P1.14 | ✅ 20/08 — achou **1 regressão real introduzida pela própria correção do vira-a-noite** (`horaInicio === horaFim` bloqueava o dia inteiro) + 1 lacuna de paridade D9×conferência independente na direção contrária. Ambos corrigidos na origem (`malha.ts`), não só na tela. Ver "5ª auditoria" abaixo. 435/435 testes, typecheck/gate/build limpos |
+| P1.16 | 6ª auditoria — verificação cética da correção do P1.15 | ✅ 20/08 — **FECHADO.** Sem defeito real; só um comentário desatualizado em `tipos.ts` (corrigido). Rodou os 4 comandos do gate por conta própria, testou casos de borda novos (fronteira tocando, `00:00` explícito × campo vazio) — nenhum quebrou. Ver "6ª auditoria" abaixo |
+| P1.17 | 🟡 **Cartão de pessoa do Elenco não tinha indicador de abrir/fechar** — achado ao vivo pelo Flavio, comparando com o cartão de evento da Malha (que já mostra "editar"/"fechar"). Correção errada na primeira tentativa (troquei a Malha por "+"/"−" em vez de acrescentar o rótulo que faltava no Elenco) — revertida assim que ele apontou a troca | ✅ 20/08 — `CartaoPessoa` (Admin.tsx) ganhou o mesmo rótulo textual "editar"/"fechar" da Malha; `AbaMalha.tsx` sem alteração líquida (revertido ao original). Confirmado ao vivo no navegador nas duas telas |
 
 ## P2 — Declarado, não construído ⚪
 
@@ -169,8 +171,35 @@ tempo; evento terminando exatamente à meia-noite contra a faixa padrão NOITE; 
 grep confirma que não sobra nenhum "SANTA CEIA" cravado fora de comentário/teste/fixture; os
 comentários de `tipos.ts` e `AbaMalha.tsx` batem com o código atual.
 
-**Resultado:** 435/435 testes (era 432), typecheck/gate/build limpos. **6ª auditoria**
-(verificação cética desta correção) disparada — resultado ainda pendente no momento deste registro.
+**Resultado:** 435/435 testes (era 432), typecheck/gate/build limpos.
+
+## 6ª auditoria — verificação cética da 5ª (20/08/2026)
+
+Agente independente mandado a refutar a correção da regressão acima. **FECHADO — sem defeito
+real.** Atacou especificamente: (1) todo chamador de `segmentosDoIntervalo` — só 2, os dois dentro
+de `turnoNaJanela`, e o único uso do resultado é `.some()`, que lê array vazio como `false` sem
+indexar nada; (2) se algum caminho fora da tela (`carga-inicial.mjs`, config editada à mão) produz
+`horaInicio === horaFim` — confirmado que sim é possível, mas com a correção do P1.15 isso fica
+inerte em qualquer um dos dois campos, não mascara bloqueio nenhum; (3) casos de borda novos, com
+testes throwaway rodados e apagados: evento e turno com o mesmo `horaInicio` (colidem, correto);
+fronteira exata "evento termina quando o turno começa" (não colide, confirma a semântica de
+intervalo meio-aberto); `horaInicio="00:00"` EXPLÍCITO (não é confundido com campo vazio/`undefined`
+— `AbaMalha.tsx` converte `""` para `undefined` antes de chegar ao domínio). Rodou
+`typecheck`/`test`/`generico`/`build` por conta própria, todos limpos. Único achado: um comentário
+em `tipos.ts` (linhas 148-149) ainda dizia que pontas iguais eram "rejeitadas na tela (`Admin.tsx`)
+antes de chegar aqui" — desatualizado desde a correção do P1.15 (a proteção real mora no domínio
+agora). Corrigido — comentário, não código.
+
+## Correção de UX — indicador do cartão do Elenco (20/08/2026)
+
+O Flavio comparou ao vivo o cartão de pessoa do Elenco com o cartão de evento da Malha (que já
+mostra "editar"/"fechar" como indicador de estado) e apontou que o Elenco não tinha indicador
+nenhum — clicar no nome abre/fecha sem nenhum sinal visual de que aquilo é clicável ou do que vai
+acontecer. **Na primeira tentativa, a correção saiu invertida**: troquei o indicador da MALHA por
+um símbolo "+"/"−" em vez de acrescentar o rótulo que faltava no ELENCO — revertido assim que ele
+apontou o engano ("não era para alterar a aba de malha"). Corrigido de verdade: `CartaoPessoa`
+(`Admin.tsx`) ganhou o mesmo rótulo textual "editar"/"fechar" que a Malha já tinha, sem tocar em
+`AbaMalha.tsx`. Confirmado ao vivo no navegador, nas duas telas, nos dois estados (aberto/fechado).
 
 ## Como usar este arquivo
 

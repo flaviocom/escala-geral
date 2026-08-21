@@ -11,9 +11,11 @@
 **Nasceu hoje** (S-068/S-069, escala-porteiros), a partir da trilha genérica já provada sem texto
 de cliente. Site e área administrativa no ar, escala zerada. Duas telas que faltavam no produto
 original (malha e mensagem configuráveis) já construídas, testadas e publicadas. **Horário real**
-(regra máxima do dono) implementado, coexistindo com o período — 5 rodadas de auditoria
-independente já rodadas sobre este repositório (a 4ª achou 4 defeitos, a 5ª achou 1 regressão da
-própria correção da 4ª + 1 lacuna), a 6ª em andamento.
+(regra máxima do dono) implementado, coexistindo com o período — **6 rodadas de auditoria
+independente**, a última (6ª) **fechada sem defeito real** (a 4ª achou 4 defeitos, a 5ª achou 1
+regressão da própria correção da 4ª + 1 lacuna, ambas corrigidas e reverificadas). Também corrigido,
+ao vivo: o cartão de pessoa do Elenco ganhou o mesmo indicador "editar"/"fechar" que a Malha já
+tinha.
 
 ## Onde ficou hoje, ao final desta sessão
 
@@ -47,8 +49,14 @@ trata início-igual-a-fim como intervalo vazio, não importa de onde o dado vem 
 nenhuma validação de tela específica), mais defesa em profundidade em `AbaMalha.tsx` (`type="time"`
 + aviso inline). Também fechada a paridade D9×conferência independente que faltava na direção
 contrária (evento removido da config depois de gerar). 435/435 testes (era 432), typecheck/gate/
-build limpos. **6ª auditoria** (verificação cética desta correção) disparada — resultado ainda
-pendente no momento deste registro; ver `BACKLOG.md` P1.15 para o veredito quando sair.
+build limpos.
+
+**6ª auditoria** (verificação cética desta correção): **FECHADA, sem defeito real** — só um
+comentário desatualizado em `tipos.ts`, corrigido. Ver `BACKLOG.md` P1.16.
+
+**Correção de UX, ao vivo:** o Flavio apontou que o cartão de pessoa do Elenco não tinha indicador
+de abrir/fechar, ao contrário do cartão de evento da Malha ("editar"/"fechar"). Corrigido —
+`CartaoPessoa` ganhou o mesmo rótulo. Ver `BACKLOG.md` P1.17.
 
 ## O que foi feito nesta sessão de fundação
 
