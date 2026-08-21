@@ -47,7 +47,25 @@ sempre, acima de N pessoas, ou opt-in por cliente? Ver `escala-porteiros/BACKLOG
 | P2.1 | Horário real decidindo o encaixe (hoje é só rótulo informativo) | Mudança de motor, não de dado — fora do escopo desta rodada. Ver nota em `RegraMalha` (tipos.ts) |
 | P2.2 | Teste de componente (interação de tela) para AbaMalha/AbaMensagem/EditorDeLogo | Cobertas por typecheck + varredura de domínio + lógica extraída testável (`logo.ts`); falta teste de clique/preenchimento em si |
 | P2.3 | Evento avulso numa data específica (não recorrente) | Estava no desenho original do P4.w (`escala-porteiros/docs/FASE2.md`), não construído ainda |
-| P2.4 | Validação de "diferentes tipos de escala completos" além da varredura de malha sintética | A varredura testa FORMA de malha (2000×) com nomes genéricos incrementais ("Pessoa N"); não testa perfis de identidade DISTINTOS (ex.: hospital, segurança, delivery) gerando e publicando escalas completas de ponta a ponta cada um. Honestidade: não foi feito ainda, não só "malha diferente" |
+| P2.4 | ✅ Validação visual autônoma ao vivo — feita em 20/08. Ver "Validação visual" abaixo | Elenco (8 pessoas), identidade custom ("Segurança Alfa"/"Vigilante"), logo, geração real (133 turnos, 17/17 regras), Ajustar, Conferir por fora — todos testados no navegador, não só em teste unitário |
+| P2.5 | 🔴 **"Santa Ceia" é conceito de igreja cravado em ~20 pontos** (`Admin.tsx`, `blocos.ts`, `regras.ts`…) — "vêm vigilantes de outra congregação" apareceu literalmente numa escala de segurança predial, testando ao vivo. Já registrado em `escala-porteiros/docs/FASE2.md` P4.z-1 desde 07/08, nunca corrigido | Maior lacuna real de "genérico" hoje — o CONCEITO já é genérico ("dia sem expediente"/feriado), só o rótulo na tela não é. Consertar é reescrever ~20 pontos, não uma tela nova — decisão de prioridade do dono |
+
+## Validação visual — o que foi provado ao vivo em 20/08 (não só teste automatizado)
+
+Gerado um cenário de teste completo, diferente da igreja (identidade "Segurança Alfa · Torre
+Comercial — Bloco B", vocabulário "Vigilante"/"vigilantes", 8 pessoas, uma com nome completo e
+telefone preenchidos) e confirmado NO NAVEGADOR, com captura de tela:
+
+- ✅ Elenco: acrescentar pessoa, campo "nome completo para o WhatsApp" (vazio por padrão, como pedido)
+- ✅ Identidade: título/subtítulo/vocabulário mudam e **aparecem na tabela gerada** ("VIGILANTE" na coluna, não "IRMÃO")
+- ✅ Logotipo: upload, pré-visualização, remoção
+- ✅ Gerar escala: **133 turnos reais gerados**, piso 6 dias, 17/17 regras conferidas, aprovada sem ressalvas
+- ✅ Ajustar: lista de 133 turnos reais, clicável
+- ✅ Conferir por fora: segunda régua independente concorda — "nenhum furo nesta escala"
+- ✅ Mensagem: pré-visualização com formatação WhatsApp renderizada
+
+**Não testado** (depende de token real do GitHub — limite de segurança, não aberto sem o dono):
+Publicar de verdade, e o site PÚBLICO mostrando os dados gerados (só mostra o que foi publicado).
 
 ## Como usar este arquivo
 
