@@ -146,7 +146,10 @@ export interface EventoSemEscala {
    * `[horaInicio, horaFim)` — não só o que começa dentro dela (ver `turnoNaJanela`, `malha.ts`).
    * `horaFim` pode ser menor que `horaInicio`: o evento atravessa a meia-noite (ex.: 22:00–06:00) —
    * `segmentosDoIntervalo` (`malha.ts`) trata isso corretamente. As duas pontas iguais não têm
-   * leitura sensata e são rejeitadas na tela (`Admin.tsx`) antes de chegar aqui.
+   * leitura sensata: `segmentosDoIntervalo` as trata como intervalo VAZIO (nunca bloqueia nada) — a
+   * proteção mora no domínio, não numa tela específica, porque este campo tem duas telas de entrada
+   * (`Admin.tsx`, com trava dura; `AbaMalha.tsx`/`RegraMalha`, só com aviso) — 5ª/6ª auditoria
+   * externa, 20/08/2026.
    */
   horaInicio?: string
   horaFim?: string

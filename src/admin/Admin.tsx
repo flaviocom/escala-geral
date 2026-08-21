@@ -989,19 +989,24 @@ const CartaoPessoa: React.FC<{ pessoa: Pessoa; aoAlterar: (m: (p: Pessoa) => Pes
   return (
     <div className={clsx('border rounded-2xl overflow-hidden', pessoa.ativo ? 'border-gray-200 bg-white' : 'border-gray-200 bg-gray-50 opacity-60')}>
       <div className="flex items-center gap-3 p-4">
-        <button title="Abre e fecha as restrições desta pessoa" onClick={() => setAberto(!aberto)} className="flex-1 text-left min-w-0">
-          <div className="font-semibold text-gray-900 flex items-center gap-2">
-            {pessoa.nome}
-            {!pessoa.ativo && <span className="text-[10px] uppercase tracking-wider bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">fora</span>}
-            {pessoa.telefone && (
-              <span title="Recebe lembrete individual no WhatsApp" className="text-green-600">
-                <Phone className="w-3.5 h-3.5" />
-              </span>
-            )}
+        <button title="Abre e fecha as restrições desta pessoa" onClick={() => setAberto(!aberto)} className="flex-1 flex items-center justify-between gap-2 text-left min-w-0">
+          <div className="min-w-0">
+            <div className="font-semibold text-gray-900 flex items-center gap-2">
+              {pessoa.nome}
+              {!pessoa.ativo && <span className="text-[10px] uppercase tracking-wider bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">fora</span>}
+              {pessoa.telefone && (
+                <span title="Recebe lembrete individual no WhatsApp" className="text-green-600">
+                  <Phone className="w-3.5 h-3.5" />
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-gray-500 mt-0.5 truncate">
+              {etiquetas.length ? etiquetas.join(' · ') : 'sem restrição'}
+            </div>
           </div>
-          <div className="text-xs text-gray-500 mt-0.5 truncate">
-            {etiquetas.length ? etiquetas.join(' · ') : 'sem restrição'}
-          </div>
+          {/* Mesmo indicador textual de disclosure da malha (`AbaMalha.tsx`) — pedido do dono,
+              20/08/2026: os dois cartões expansíveis usam a mesma palavra para o mesmo estado. */}
+          <span className="text-xs text-gray-400 shrink-0">{aberto ? 'fechar' : 'editar'}</span>
         </button>
         <button
           onClick={() => aoAlterar((p) => ({ ...p, ativo: !p.ativo }))}
