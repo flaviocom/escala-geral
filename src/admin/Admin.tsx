@@ -1860,6 +1860,79 @@ const AbaGerar: React.FC<{
             </button>
           </div>
         )}
+
+        {/*
+          🔴 O NOME, O CABEÇALHO E O LOGOTIPO DA ESCALA — 05/08/2026, mesmo motivo da Santa Ceia
+          (`novaCeia`, acima). `config.identidade` existia desde o começo no tipo, no dado e no
+          padrão de carregamento — e não era lido em lugar nenhum. Cabeçalho do site, imagem do
+          WhatsApp, nome do arquivo baixado, título da aba e os prompts do motor traziam "Escala
+          Porteiros", "JD. São Luiz" e "Irmão" cravados no código.
+
+          🔴 MOVIDO PARA O TOPO E RENOMEADO — 20/08/2026, achado ao vivo pelo Flavio DUAS VEZES: o
+          rótulo "Nome da escala e como chamar quem é escalado" nunca mencionava "logotipo" nem
+          "cabeçalho" — quem procurava por essas palavras não achava, mesmo abrindo a aba certa. E o
+          bloco vivia depois de "Dias sem escala", nos fundos da aba. Configurar identidade é
+          trabalho de PRIMEIRA VEZ (antes de gerar a primeira escala); publicar/gerar é trabalho do
+          dia a dia — a ordem na tela devia refletir isso, não o contrário.
+        */}
+        <details className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-gray-700">
+            Identidade da escala — título, cabeçalho, vocabulário e logotipo
+          </summary>
+          <p className="mt-2 text-xs leading-relaxed text-gray-600">
+            Sai no cabeçalho do site, na imagem que vai para o WhatsApp, no nome do arquivo baixado e
+            no título da aba do navegador. Vale depois de <strong>publicar</strong>.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Título
+              <input
+                id="identidade-titulo"
+                name="identidade-titulo"
+                value={config.identidade.titulo}
+                title="O nome que aparece grande no cabeçalho — ex.: Escala de Recepção"
+                onChange={(e) => aoMudarConfig({ ...config, identidade: { ...config.identidade, titulo: e.target.value } })}
+                className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-gray-900"
+              />
+            </label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Subtítulo
+              <input
+                id="identidade-subtitulo"
+                name="identidade-subtitulo"
+                value={config.identidade.subtitulo}
+                title="A linha menor embaixo do título — ex.: Unidade Centro. Pode ficar vazia"
+                onChange={(e) => aoMudarConfig({ ...config, identidade: { ...config.identidade, subtitulo: e.target.value } })}
+                className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-gray-900"
+              />
+            </label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Como chamar (singular)
+              <input
+                id="identidade-pessoa-singular"
+                name="identidade-pessoa-singular"
+                value={config.identidade.pessoa.singular}
+                title="Ex.: Funcionário, Plantonista, Voluntário. Aparece no filtro e no cabeçalho da tabela"
+                onChange={(e) => aoMudarConfig({ ...config, identidade: { ...config.identidade, pessoa: { ...config.identidade.pessoa, singular: e.target.value } } })}
+                className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-gray-900"
+              />
+            </label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Como chamar (plural)
+              <input
+                id="identidade-pessoa-plural"
+                name="identidade-pessoa-plural"
+                value={config.identidade.pessoa.plural}
+                title="Ex.: funcionários, plantonistas. Aparece no rodapé da imagem: “3 ___ por turno”"
+                onChange={(e) => aoMudarConfig({ ...config, identidade: { ...config.identidade, pessoa: { ...config.identidade.pessoa, plural: e.target.value } } })}
+                className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-gray-900"
+              />
+            </label>
+          </div>
+
+          <EditorDeLogo config={config} aoMudarConfig={aoMudarConfig} />
+        </details>
+
         <div className="flex flex-wrap gap-4 items-end">
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
             De
@@ -2125,75 +2198,6 @@ const AbaGerar: React.FC<{
           {erroEvento && <p className="mt-2 text-xs font-medium text-red-600">{erroEvento}</p>}
         </div>
 
-        {/*
-          🔴 O NOME E O VOCABULÁRIO DA ESCALA — 05/08/2026, mesmo motivo que a linha acima.
-
-          `config.identidade` existia desde o começo no tipo, no dado e no padrão de carregamento —
-          e não era lido em lugar nenhum. Cabeçalho do site, cabeçalho daqui, imagem do WhatsApp,
-          nome do arquivo baixado, título da aba e os prompts do motor traziam "Escala Porteiros",
-          "JD. São Luiz" e "Irmão" cravados no código. Configuração morta é pior que configuração
-          ausente: ela parece que resolve.
-
-          O vocabulário está aqui e não numa aba separada porque é decisão de quem MONTA a escala, e
-          é o mesmo lugar onde ele já decide quantas pessoas por turno.
-        */}
-        <details className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3">
-          <summary className="cursor-pointer text-sm font-semibold text-gray-700">
-            Nome da escala e como chamar quem é escalado
-          </summary>
-          <p className="mt-2 text-xs leading-relaxed text-gray-600">
-            Sai no cabeçalho do site, na imagem que vai para o WhatsApp, no nome do arquivo baixado e
-            no título da aba do navegador. Vale depois de <strong>publicar</strong>.
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Título
-              <input
-                id="identidade-titulo"
-                name="identidade-titulo"
-                value={config.identidade.titulo}
-                title="O nome que aparece grande no cabeçalho — ex.: Escala de Recepção"
-                onChange={(e) => aoMudarConfig({ ...config, identidade: { ...config.identidade, titulo: e.target.value } })}
-                className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-gray-900"
-              />
-            </label>
-            <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Subtítulo
-              <input
-                id="identidade-subtitulo"
-                name="identidade-subtitulo"
-                value={config.identidade.subtitulo}
-                title="A linha menor embaixo do título — ex.: Unidade Centro. Pode ficar vazia"
-                onChange={(e) => aoMudarConfig({ ...config, identidade: { ...config.identidade, subtitulo: e.target.value } })}
-                className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-gray-900"
-              />
-            </label>
-            <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Como chamar (singular)
-              <input
-                id="identidade-pessoa-singular"
-                name="identidade-pessoa-singular"
-                value={config.identidade.pessoa.singular}
-                title="Ex.: Funcionário, Plantonista, Voluntário. Aparece no filtro e no cabeçalho da tabela"
-                onChange={(e) => aoMudarConfig({ ...config, identidade: { ...config.identidade, pessoa: { ...config.identidade.pessoa, singular: e.target.value } } })}
-                className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-gray-900"
-              />
-            </label>
-            <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Como chamar (plural)
-              <input
-                id="identidade-pessoa-plural"
-                name="identidade-pessoa-plural"
-                value={config.identidade.pessoa.plural}
-                title="Ex.: funcionários, plantonistas. Aparece no rodapé da imagem: “3 ___ por turno”"
-                onChange={(e) => aoMudarConfig({ ...config, identidade: { ...config.identidade, pessoa: { ...config.identidade.pessoa, plural: e.target.value } } })}
-                className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm font-normal normal-case tracking-normal text-gray-900"
-              />
-            </label>
-          </div>
-
-          <EditorDeLogo config={config} aoMudarConfig={aoMudarConfig} />
-        </details>
         {/*
           🔴 "GERAR OUTRA COMBINAÇÃO" — o pedido do Flavio de poder recusar e pedir outra.
           Só aparece depois que existe escala: antes dela o botão não teria o que substituir.
