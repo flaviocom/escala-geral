@@ -5,6 +5,8 @@
 > **Última atualização:** 20/08/2026 · **Fuso:** America/São_Paulo
 >
 > **Roteador:** [`AGENTS.md`](AGENTS.md) · **Pendências:** [`BACKLOG.md`](BACKLOG.md)
+> **Registro completo do dia de nascimento** (feito/aprendido/ajustado/solicitado/não atendido/não
+> decidido/pendências, os dois repositórios): [`escala-porteiros/docs/handoff/HANDOFF_2026-08-20.md`](https://github.com/flaviocom/escala-porteiros/blob/main/docs/handoff/HANDOFF_2026-08-20.md)
 
 ## Em uma frase
 
