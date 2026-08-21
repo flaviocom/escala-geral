@@ -44,11 +44,11 @@ sempre, acima de N pessoas, ou opt-in por cliente? Ver `escala-porteiros/BACKLOG
 
 | # | Item | Por quê fica pendente |
 |---|---|---|
-| P2.1 | Horário real decidindo o encaixe (hoje é só rótulo informativo) | Mudança de motor, não de dado — fora do escopo desta rodada. Ver nota em `RegraMalha` (tipos.ts) |
-| P2.2 | Teste de componente (interação de tela) para AbaMalha/AbaMensagem/EditorDeLogo | Cobertas por typecheck + varredura de domínio + lógica extraída testável (`logo.ts`); falta teste de clique/preenchimento em si |
-| P2.3 | Evento avulso numa data específica (não recorrente) | Estava no desenho original do P4.w (`escala-porteiros/docs/FASE2.md`), não construído ainda |
+| P2.1 | ✅ Horário real decidindo o encaixe do evento sem escala | Feito 20/08 — regra máxima do dono. `RegraMalha.horaInicio/horaFim` propaga para `Turno`, evento sem escala pode bloquear DIA TODO ou só um HORÁRIO (sobreposição de intervalo, sempre Brasília). Ver "Regra máxima — hora real" abaixo. **O que NÃO mudou de propósito:** o período (Manhã/Tarde/Noite) continua decidindo `turnosPermitidos` de restrição de pessoa — as duas formas coexistem, como pedido |
+| P2.2 | Teste de componente (interação de tela) para AbaMalha/AbaMensagem/EditorDeLogo/formulário de evento | Cobertas por typecheck + varredura de domínio + lógica extraída testável (`logo.ts`); falta teste de clique/preenchimento em si |
+| P2.3 | Evento avulso numa data específica (não recorrente) — para a MALHA (não confundir com evento SEM escala, que já é por data) | Estava no desenho original do P4.w (`escala-porteiros/docs/FASE2.md`), não construído ainda |
 | P2.4 | ✅ Validação visual autônoma ao vivo — feita em 20/08. Ver "Validação visual" abaixo | Elenco (8 pessoas), identidade custom ("Segurança Alfa"/"Vigilante"), logo, geração real (133 turnos, 17/17 regras), Ajustar, Conferir por fora — todos testados no navegador, não só em teste unitário |
-| P2.5 | 🔴 **"Santa Ceia" é conceito de igreja cravado em ~20 pontos** (`Admin.tsx`, `blocos.ts`, `regras.ts`…) — "vêm vigilantes de outra congregação" apareceu literalmente numa escala de segurança predial, testando ao vivo. Já registrado em `escala-porteiros/docs/FASE2.md` P4.z-1 desde 07/08, nunca corrigido | Maior lacuna real de "genérico" hoje — o CONCEITO já é genérico ("dia sem expediente"/feriado), só o rótulo na tela não é. Consertar é reescrever ~20 pontos, não uma tela nova — decisão de prioridade do dono |
+| P2.5 | ✅ **"Santa Ceia" generalizado para `EventoSemEscala`** (nome editável por evento, data editável, dia todo ou horário específico) | Feito 20/08, junto com P2.1 — mesma rodada, mesmo pedido. `construirGrade`, D9 (`regras.ts`), conferência independente, `ScheduleTable.tsx`, `EscalaImagem.tsx` todos generalizados. 428/428 testes, 2 bugs reais achados pelo teste novo (`evento-sem-escala.test.ts`) e corrigidos antes de publicar: semântica de sobreposição errada, e D9 com falso positivo em dia de horário específico |
 
 ## Validação visual — o que foi provado ao vivo em 20/08 (não só teste automatizado)
 
@@ -66,6 +66,33 @@ telefone preenchidos) e confirmado NO NAVEGADOR, com captura de tela:
 
 **Não testado** (depende de token real do GitHub — limite de segurança, não aberto sem o dono):
 Publicar de verdade, e o site PÚBLICO mostrando os dados gerados (só mostra o que foi publicado).
+
+## Regra máxima — hora real, sempre Brasília (20/08/2026)
+
+Palavras do dono, textuais: *"eu não quero um horário fixo ou período fixo. Eu quero que você
+controle horas mesmo, com data e hora de Brasília, Brasil, sempre. Entenda isso. Isso é uma regra
+máxima."* — e, depois de eu confirmar o desenho: *"se eu colocar um período (manhã, tarde ou
+noite), é o período. Se eu colocar hora, você tem que conseguir controlar a hora exata, exibir na
+escala e assim por diante."*
+
+**O que existe agora:**
+- Cada evento de "dias sem escala" tem **nome editável** (não mais "Santa Ceia" cravado), **data
+  editável**, e a escolha **dia todo × só um horário**. Horário real bloqueia só os turnos que se
+  SOBREPÕEM à janela — os outros, no mesmo dia, seguem normais.
+- `RegraMalha.horaInicio/horaFim` deixaram de ser só informativos: propagam para cada `Turno`
+  gerado e aparecem na tela (`ScheduleTable.tsx`), na imagem exportada (`EscalaImagem.tsx`).
+- **`HH:mm`, texto puro, nunca `Date`** — decisão de arquitetura, não só estilo: elimina o defeito
+  clássico de fuso horário (não há conversão nenhuma para errar). "Sempre Brasília" sai de graça,
+  por construção, não por configuração de fuso que alguém possa errar.
+- Período (Manhã/Tarde/Noite) **continua existindo e decidindo** `turnosPermitidos` (restrição de
+  pessoa) — as duas formas coexistem, como o dono confirmou explicitamente.
+
+**Testado antes de publicar:** `evento-sem-escala.test.ts` (7 casos) achou 2 bugs reais nesta
+própria sessão, antes de qualquer auditoria externa — a disciplina de teste funcionou como
+desenhada: (1) a primeira versão de `turnoNaJanela` bloqueava só turnos que COMEÇAM dentro da
+janela, não que se SOBREPÕEM — um evento 07h-09h não atingia a Manhã padrão (06h-12h) mesmo a
+cobrindo inteira; (2) a regra D9 disparava falso positivo num dia de horário específico, porque o
+turno comum sobrando (correto) parecia "marcado no bloco mas fora do calendário".
 
 ## Como usar este arquivo
 
