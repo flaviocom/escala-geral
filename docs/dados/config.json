@@ -1,18 +1,17 @@
 {
   "versao": 1,
-  "capacidadePadrao": 1,
+  "capacidadePadrao": 3,
   "malhaPadrao": {
     "regras": [
-      { "diaSemana": 0, "turnos": ["NOITE"] },
-      { "diaSemana": 1, "turnos": ["NOITE"] },
-      { "diaSemana": 2, "turnos": ["NOITE"] },
+      { "diaSemana": 0, "turnos": ["MANHA", "NOITE"] },
       { "diaSemana": 3, "turnos": ["NOITE"] },
-      { "diaSemana": 4, "turnos": ["NOITE"] },
-      { "diaSemana": 5, "turnos": ["NOITE"] },
-      { "diaSemana": 6, "turnos": ["NOITE"] }
+      { "diaSemana": 6, "turnos": ["NOITE"] },
+      { "diaSemana": 6, "turnos": ["TARDE"], "somenteOcorrencia": 1, "rotulo": "ENSAIO" }
     ]
   },
-  "santaCeia": [],
+  "eventosSemEscala": [
+    { "nome": "Santa Ceia", "data": "2026-08-16", "diaTodo": true }
+  ],
   "identidade": {
     "titulo": "Escala de plantões",
     "subtitulo": "Demonstração — portaria de prédio",
