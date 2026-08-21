@@ -145,6 +145,33 @@ describe('evento sem escala — VIRA A NOITE (S-068/S-069, quarta auditoria exte
     expect(noite.santaCeia).toBeUndefined()
     expect(noite.capacidade).toBeGreaterThan(0)
   })
+
+  it('🔴 5ª auditoria: RegraMalha com horaInicio === horaFim (erro de digitação) NÃO bloqueia um evento em outra hora do dia', () => {
+    // `AbaMalha.tsx` é texto livre, sem a validação que `Admin.tsx` tem para EventoSemEscala — um
+    // horário igual nos dois campos da malha chegava aqui e virava "o dia inteiro menos um
+    // instante" (mesmo defeito do vira-a-noite, ao contrário). Provado ao vivo pelo 5º auditor:
+    // TARDE 10:00–10:00 e um evento de madrugada, sem relação nenhuma, zerava a capacidade da TARDE.
+    const malha: Malha = { regras: [{ diaSemana: 2, turnos: ['TARDE'], horaInicio: '10:00', horaFim: '10:00' }] }
+    const { bloco } = gerarComEvento(malha, [
+      { nome: 'Bloqueio de madrugada', data: '2026-09-08', diaTodo: false, horaInicio: '02:00', horaFim: '03:00' },
+    ])
+    const tarde = bloco.turnos.find((t) => t.data === '2026-09-08' && t.tipo === 'TARDE')!
+    expect(tarde.santaCeia).toBeUndefined()
+    expect(tarde.capacidade).toBeGreaterThan(0)
+  })
+
+  it('🔴 5ª auditoria: EventoSemEscala com horaInicio === horaFim também fica inerte — não bloqueia turno nenhum', () => {
+    const malha: Malha = { regras: [{ diaSemana: 2, turnos: ['MANHA', 'TARDE', 'NOITE'] }] }
+    const { bloco } = gerarComEvento(malha, [
+      { nome: 'Digitação errada', data: '2026-09-08', diaTodo: false, horaInicio: '10:00', horaFim: '10:00' },
+    ])
+    const doDia = bloco.turnos.filter((t) => t.data === '2026-09-08')
+    expect(doDia).toHaveLength(3)
+    for (const t of doDia) {
+      expect(t.santaCeia).toBeUndefined()
+      expect(t.capacidade).toBeGreaterThan(0)
+    }
+  })
 })
 
 describe('dia todo com turno comum sobrando no mesmo dia (dado editado à mão) — quarta auditoria externa, 20/08/2026', () => {
@@ -160,6 +187,20 @@ describe('dia todo com turno comum sobrando no mesmo dia (dado editado à mão) 
     }
     const rel = validar({ bloco: blocoEditado, pessoas: pessoas(10), ultimaEscalaAnterior: {}, config })
     const porFora = conferirPorFora(blocoEditado, pessoas(10), config)
+    expect(rel.falhasDuras.length).toBeGreaterThan(0)
+    expect(porFora.comFuro.length).toBeGreaterThan(0)
+  })
+
+  it('🔴 5ª auditoria: evento REMOVIDO da config depois de gerar — D9 e conferirPorFora concordam na direção contrária', () => {
+    // Gera com o evento presente (marca o turno), depois simula a config editada SEM aquele
+    // evento — cenário real: bloco já publicado, dono edita a config depois. A direção "bloco →
+    // calendário" (D9, item 3) existia; a mesma direção em `conferirPorFora` não existia até esta
+    // rodada.
+    const malha: Malha = { regras: [{ diaSemana: 2, turnos: ['MANHA'] }] }
+    const { bloco, config } = gerarComEvento(malha, [{ nome: 'Manutenção', data: '2026-09-08', diaTodo: true }])
+    const configSemEvento = { ...config, eventosSemEscala: [] }
+    const rel = validar({ bloco, pessoas: pessoas(10), ultimaEscalaAnterior: {}, config: configSemEvento })
+    const porFora = conferirPorFora(bloco, pessoas(10), configSemEvento)
     expect(rel.falhasDuras.length).toBeGreaterThan(0)
     expect(porFora.comFuro.length).toBeGreaterThan(0)
   })

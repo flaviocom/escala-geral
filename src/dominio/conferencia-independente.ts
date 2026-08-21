@@ -272,10 +272,23 @@ export function conferirPorFora(
       [...new Set(marcadas.map((t) => t.data))].filter((d) => bloco.turnos.filter((t) => t.data === d).every((t) => t.santaCeia)),
     )
     // Só cobra o calendário de bloco que o sistema gerou — o passado importado é o que já foi visto.
-    if (bloco.origem !== 'importado')
+    if (bloco.origem !== 'importado') {
       for (const d of canonicas)
         if (!datasMarcadas.has(d) && bloco.turnos.some((t) => t.data === d))
           furos.push(`${formatarBR(d)} é dia sem escala no calendário e o bloco tem turno comum nele`)
+      /*
+        🔴 SÓ METADE DA PARIDADE COM D9 — quinta auditoria externa, 20/08/2026. A correção acima
+        fechou a direção "calendário → bloco" (item 2 de D9), mas a direção CONTRÁRIA — dia marcado
+        no bloco que não consta mais do calendário (evento removido da config depois de gerar) — não
+        existia aqui, só em D9 (`regras.ts`, item 3). Provado ao vivo: gerar com evento dia-todo,
+        depois apagar o evento da config — D9 acusa corretamente, esta régua ficava muda. Mesma
+        isenção do bloco importado que D9 já tinha (`congelado`, `regras.ts`): o passado publicado
+        não se reescreve por causa de uma config editada depois.
+      */
+      for (const d of datasMarcadas)
+        if (!canonicas.includes(d))
+          furos.push(`${formatarBR(d)} está marcada como dia sem escala no bloco, mas não consta do calendário`)
+    }
     /*
       🔴 QUAIS DIAS — 06/08/2026. Dizia *"1 data(s) no calendário · 1 marcada(s)"*, e a pergunta dele
       foi imediata: *"qual é ou quais são os dias?"*. Contar não informa; nomear informa.

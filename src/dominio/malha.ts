@@ -51,12 +51,24 @@ const FAIXA_PADRAO_DO_PERIODO: Record<TipoTurno, [number, number]> = {
  * contra evento 23h–01h, e plantão 23h–01h contra evento 00h–02h — os dois deveriam colidir e
  * nenhum colidia.
  *
- * `fim > ini`: intervalo comum, um pedaço só. `fim <= ini`: atravessa a meia-noite, vira dois
- * pedaços — `[ini, 1440)` e `[0, fim)`. `fim === ini` cai neste segundo caso de propósito: como
- * dois horários iguais não têm leitura sensata como intervalo de UM minuto, a tela (`Admin.tsx`)
- * rejeita essa entrada antes de chegar aqui — este código nunca precisa decidir o que ela significa.
+ * `fim > ini`: intervalo comum, um pedaço só. `fim < ini`: atravessa a meia-noite, vira dois
+ * pedaços — `[ini, 1440)` e `[0, fim)`.
+ *
+ * 🔴 `fim === ini` VIROU O MESMO DEFEITO, AO CONTRÁRIO — quinta auditoria externa, 20/08/2026. A
+ * primeira versão deste comentário tratava `fim === ini` como vira-a-noite (`[ini,1440)` + `[0,ini)`
+ * = o dia INTEIRO menos um instante) e confiava que `Admin.tsx` nunca deixaria essa entrada chegar
+ * aqui. Verdade só para `EventoSemEscala` (a tela usa `<input type="time">`, e valida). **Falsa**
+ * para `RegraMalha.horaInicio/horaFim` (`AbaMalha.tsx`): campo de texto livre, sem validação
+ * nenhuma, que alimenta esta MESMA função via `construirGrade`. Provado ao vivo: uma `RegraMalha`
+ * com `horaInicio === horaFim === "10:00"` (erro de digitação plausível — copiar o mesmo horário
+ * nos dois campos) bloqueava um evento de horário específico em QUALQUER outra hora do dia, sem
+ * relação nenhuma com 10:00 — silencioso, generalizado, exatamente a classe de defeito que esta
+ * função inteira existe para não ter. Corrigido tratando `fim === ini` como intervalo VAZIO — zero
+ * pedaços, nunca colide com nada. Não há confiança nenhuma numa porta de entrada específica: o
+ * caso degenerado agora é inofensivo não importa de onde o dado vem.
  */
 function segmentosDoIntervalo(iniMin: number, fimMin: number): Array<[number, number]> {
+  if (fimMin === iniMin) return []
   return fimMin > iniMin ? [[iniMin, fimMin]] : [[iniMin, 24 * 60], [0, fimMin]]
 }
 

@@ -203,8 +203,7 @@ export const AbaMalha: React.FC<{ config: Configuracao; aoMudarConfig: (c: Confi
                   <input
                     id={`malha-inicio-${i}`}
                     name={`malha-inicio-${i}`}
-                    type="text"
-                    placeholder="09:00"
+                    type="time"
                     value={r.horaInicio ?? ''}
                     onChange={(e) => mudarRegra(i, (x) => ({ ...x, horaInicio: e.target.value || undefined }))}
                     className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
@@ -215,12 +214,24 @@ export const AbaMalha: React.FC<{ config: Configuracao; aoMudarConfig: (c: Confi
                   <input
                     id={`malha-fim-${i}`}
                     name={`malha-fim-${i}`}
-                    type="text"
-                    placeholder="11:30"
+                    type="time"
                     value={r.horaFim ?? ''}
                     onChange={(e) => mudarRegra(i, (x) => ({ ...x, horaFim: e.target.value || undefined }))}
                     className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   />
+                  {r.horaInicio && r.horaFim && r.horaInicio === r.horaFim && (
+                    /*
+                      🔴 QUINTA AUDITORIA EXTERNA, 20/08/2026 — este campo era texto livre, sem
+                      validação nenhuma, e alimentava a mesma `turnoNaJanela` (`malha.ts`) que o
+                      formulário de evento. `horaInicio === horaFim` aqui já não quebra mais nada (a
+                      correção mora em `malha.ts`, que agora trata isso como intervalo vazio, não
+                      importa a origem do dado) — este aviso é só para a pessoa notar o
+                      provável erro de digitação, não uma trava.
+                    */
+                    <p className="mt-1 text-xs text-amber-600">
+                      Início e fim iguais — este horário fica sem efeito nenhum. Foi engano?
+                    </p>
+                  )}
                 </label>
 
                 <label className="text-xs text-gray-600">
