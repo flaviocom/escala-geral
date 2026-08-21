@@ -39,7 +39,8 @@ sempre, acima de N pessoas, ou opt-in por cliente? Ver `escala-porteiros/BACKLOG
 | P1.11 | Varredura de malha ampliada — 2000 cenários (era 200), elenco até 60 (era 26), + 6 casos-limite explícitos | ✅ 20/08 — pedido explícito: "muito mais parrudo, exaustivamente testado" |
 | P1.12 | 🔴 **2ª auditoria achou uma SEGUNDA colisão da mesma classe** — `App.tsx` gravava `myBrotherId`/`showMyShiftsOnly` sem namespace, mesmo depois da correção do P1.8 | ✅ 20/08 — corrigido dentro das 3 funções de preferência (não em cada chamada); teste `cofre.test.ts` que tinha virado vazio também corrigido, com guarda contra regressão silenciosa |
 | P1.13 | 3ª auditoria — varredura total de `localStorage`/`sessionStorage`/cookies/IndexedDB no repositório inteiro | ✅ 20/08 — **FECHADO.** Só 4 arquivos usam `localStorage`, todos namespaced; zero uso de sessionStorage/cookies/IndexedDB/service worker; teste de regressão simulado e confirmado que detecta a volta do bug |
-| P1.14 | 4ª auditoria — motor de hora real (P2.1/P2.5), agente cego mandado a refutar | ✅ 20/08 — achou **4 defeitos reais**, todos corrigidos com teste de regressão reproduzindo o cenário exato de cada um. Ver "4ª auditoria — hora real" abaixo. 432/432 testes, typecheck/gate/build limpos. **5ª auditoria** (verificação cética das correções) disparada, resultado pendente |
+| P1.14 | 4ª auditoria — motor de hora real (P2.1/P2.5), agente cego mandado a refutar | ✅ 20/08 — achou **4 defeitos reais**, todos corrigidos com teste de regressão reproduzindo o cenário exato de cada um. Ver "4ª auditoria — hora real" abaixo. 432/432 testes, typecheck/gate/build limpos |
+| P1.15 | 5ª auditoria — verificação cética das 4 correções do P1.14 | ✅ 20/08 — achou **1 regressão real introduzida pela própria correção do vira-a-noite** (`horaInicio === horaFim` bloqueava o dia inteiro) + 1 lacuna de paridade D9×conferência independente na direção contrária. Ambos corrigidos na origem (`malha.ts`), não só na tela. Ver "5ª auditoria" abaixo. 435/435 testes, typecheck/gate/build limpos. **6ª auditoria** (verificação cética desta correção) disparada, resultado pendente |
 
 ## P2 — Declarado, não construído ⚪
 
@@ -50,7 +51,7 @@ sempre, acima de N pessoas, ou opt-in por cliente? Ver `escala-porteiros/BACKLOG
 | P2.3 | Evento avulso numa data específica (não recorrente) — para a MALHA (não confundir com evento SEM escala, que já é por data) | Estava no desenho original do P4.w (`escala-porteiros/docs/FASE2.md`), não construído ainda |
 | P2.4 | ✅ Validação visual autônoma ao vivo — feita em 20/08. Ver "Validação visual" abaixo | Elenco (8 pessoas), identidade custom ("Segurança Alfa"/"Vigilante"), logo, geração real (133 turnos, 17/17 regras), Ajustar, Conferir por fora — todos testados no navegador, não só em teste unitário |
 | P2.5 | ✅ **"Santa Ceia" generalizado para `EventoSemEscala`** (nome editável por evento, data editável, dia todo ou horário específico) | Feito 20/08, junto com P2.1 — mesma rodada, mesmo pedido. `construirGrade`, D9 (`regras.ts`), conferência independente, `ScheduleTable.tsx`, `EscalaImagem.tsx` todos generalizados. 428/428 testes, 2 bugs reais achados pelo teste novo (`evento-sem-escala.test.ts`) e corrigidos antes de publicar: semântica de sobreposição errada, e D9 com falso positivo em dia de horário específico |
-| P2.6 | Campo de horário da MALHA (`AbaMalha.tsx`, `RegraMalha.horaInicio/horaFim`) é texto livre — sem validação de formato `HH:mm` nem de igualdade `horaInicio === horaFim` | Notado ao corrigir os achados da 4ª auditoria (ela auditou o campo do EVENTO em `Admin.tsx`, que já ganhou essa validação; não cobriu este). Não é o mesmo bug reproduzido — é a mesma classe, num campo diferente. Baixo risco hoje (entrada malformada vira `NaN` na comparação de minutos, que `segmentosDoIntervalo` sempre lê como falso — silencioso, não quebra, mas também não bloqueia o turno que deveria). Registrado, não corrigido |
+| P2.6 | ✅ Campo de horário da MALHA (`AbaMalha.tsx`) era texto livre, sem validação | Notado ao corrigir os achados da 4ª auditoria; **a 5ª auditoria provou que era grave** (produzia o bug do início-igual-a-fim descrito abaixo, não só falta de formato). Corrigido 20/08 junto com a correção da regressão: `type="time"` + aviso inline + `segmentosDoIntervalo` (`malha.ts`) agora seguro na origem, não importa de onde o dado vem |
 
 ## Validação visual — o que foi provado ao vivo em 20/08 (não só teste automatizado)
 
@@ -132,8 +133,44 @@ defeitos reais — nenhum hipotético, todos provados ao vivo pelo próprio audi
    confirmou que não sobra mais nenhum rótulo cravado fora de comentários/testes/fixtures.
 
 **Resultado:** 432/432 testes (era 428), typecheck limpo, `npm run generico` limpo, build limpo.
-5ª auditoria (verificação cética das 4 correções acima) disparada — resultado ainda pendente no
-momento deste registro.
+
+## 5ª auditoria — verificação cética da 4ª (20/08/2026)
+
+Agente independente mandado a refutar as 4 correções acima, não a reauditar tudo. Achou 2 coisas
+reais — uma delas é uma **regressão introduzida pela própria correção do vira-a-noite**.
+
+1. 🔴 **REGRESSÃO — `horaInicio === horaFim` virava "o dia inteiro menos um instante".** O
+   comentário da correção do vira-a-noite (achado 1 da 4ª auditoria) dizia que `fim === ini`
+   caía no mesmo ramo de "atravessa meia-noite" e que isso era seguro porque `Admin.tsx` impedia
+   essa entrada. **Falso para metade dos chamadores:** verdade só para `EventoSemEscala` (o
+   formulário em `Admin.tsx` usa `<input type="time">` e ganhou validação explícita na 4ª rodada);
+   **falsa para `RegraMalha.horaInicio/horaFim`** — o campo da malha (`AbaMalha.tsx`) era texto
+   livre, sem validação nenhuma, e alimenta a MESMA função (`turnoNaJanela`, via `construirGrade`).
+   Provado ao vivo: `RegraMalha` com `horaInicio === horaFim === "10:00"` bloqueava (zerava a
+   capacidade de) um turno TARDE mesmo com um evento de horário específico sem relação nenhuma
+   (madrugada, 02:00–03:00) — silencioso e generalizado, a mesma classe de defeito que a correção
+   anterior existia para eliminar. **Corrigido na origem, não na porta:** `segmentosDoIntervalo`
+   (`malha.ts`) agora trata `fim === ini` como intervalo VAZIO (nunca colide com nada), não importa
+   de onde o dado vem — sem depender de nenhuma validação de tela específica. Também, defesa em
+   profundidade: `AbaMalha.tsx` ganhou `type="time"` (era texto livre) e um aviso inline (não
+   bloqueante) quando início e fim ficam iguais na mesma regra.
+2. 🟡 **Paridade D9×conferência independente incompleta na direção contrária.** A correção do
+   achado 3 da 4ª auditoria fechou só a direção "calendário → bloco" (dia marcado no calendário sem
+   marca no bloco). A direção contrária de D9 — dia marcado no BLOCO que não consta mais do
+   CALENDÁRIO (cenário real: evento removido da config depois do bloco já gerado) — nunca existiu
+   em `conferencia-independente.ts`, só em D9. Provado ao vivo: gerar com evento, depois remover o
+   evento da config — D9 acusava, `conferirPorFora` ficava mudo. **Corrigido:** mesma direção
+   acrescentada, com a mesma isenção de bloco importado que D9 já tinha.
+
+**Testado e fechado, sem achado:** vira-a-noite com os DOIS intervalos cruzando meia-noite ao mesmo
+tempo; evento terminando exatamente à meia-noite contra a faixa padrão NOITE; validação de
+`Admin.tsx` está antes da gravação e limpa a mensagem de erro ao reabrir o formulário;
+`turno.rotulo` sempre preenchido para todo turno `santaCeia:true`, tanto gerado quanto importado;
+grep confirma que não sobra nenhum "SANTA CEIA" cravado fora de comentário/teste/fixture; os
+comentários de `tipos.ts` e `AbaMalha.tsx` batem com o código atual.
+
+**Resultado:** 435/435 testes (era 432), typecheck/gate/build limpos. **6ª auditoria**
+(verificação cética desta correção) disparada — resultado ainda pendente no momento deste registro.
 
 ## Como usar este arquivo
 

@@ -11,8 +11,9 @@
 **Nasceu hoje** (S-068/S-069, escala-porteiros), a partir da trilha genérica já provada sem texto
 de cliente. Site e área administrativa no ar, escala zerada. Duas telas que faltavam no produto
 original (malha e mensagem configuráveis) já construídas, testadas e publicadas. **Horário real**
-(regra máxima do dono) implementado, coexistindo com o período — 4 rodadas de auditoria
-independente já rodadas sobre este repositório, a 5ª em andamento.
+(regra máxima do dono) implementado, coexistindo com o período — 5 rodadas de auditoria
+independente já rodadas sobre este repositório (a 4ª achou 4 defeitos, a 5ª achou 1 regressão da
+própria correção da 4ª + 1 lacuna), a 6ª em andamento.
 
 ## Onde ficou hoje, ao final desta sessão
 
@@ -34,9 +35,20 @@ refactor — todos corrigidos, com teste de regressão reproduzindo o cenário e
 4. 🟡 MÉDIO — `AbaAjustar.tsx` tinha "SANTA CEIA" cravado em vez do nome editável do evento
    (`turno.rotulo`). Corrigido.
 
-432/432 testes (era 428), typecheck limpo, `npm run generico` limpo, build limpo. **5ª auditoria
-independente disparada** (verificação cética das 4 correções acima) — resultado ainda pendente
-no momento deste registro; ver `BACKLOG.md` P1.14 para o veredito quando sair.
+432/432 testes (era 428), typecheck limpo, `npm run generico` limpo, build limpo.
+
+**5ª auditoria** (verificação cética das 4 correções acima) achou 2 coisas reais — uma delas é uma
+**regressão introduzida pela própria correção do item 1**: o comentário da correção do vira-a-noite
+assumia que `fim === ini` era impossível porque a tela impedia — verdade só para `EventoSemEscala`
+(`Admin.tsx`), falsa para `RegraMalha` (`AbaMalha.tsx`, campo de texto livre, sem validação nenhuma).
+Provado ao vivo: uma regra de malha com início igual a fim bloqueava o dia inteiro em qualquer outro
+evento, sem relação nenhuma. **Corrigido na ORIGEM** (`segmentosDoIntervalo` em `malha.ts` agora
+trata início-igual-a-fim como intervalo vazio, não importa de onde o dado vem — não depende mais de
+nenhuma validação de tela específica), mais defesa em profundidade em `AbaMalha.tsx` (`type="time"`
++ aviso inline). Também fechada a paridade D9×conferência independente que faltava na direção
+contrária (evento removido da config depois de gerar). 435/435 testes (era 432), typecheck/gate/
+build limpos. **6ª auditoria** (verificação cética desta correção) disparada — resultado ainda
+pendente no momento deste registro; ver `BACKLOG.md` P1.15 para o veredito quando sair.
 
 ## O que foi feito nesta sessão de fundação
 
@@ -65,9 +77,6 @@ no momento deste registro; ver `BACKLOG.md` P1.14 para o veredito quando sair.
   pendência de pesquisa registrada em `escala-porteiros/docs/FASE2.md` (P4.y), não neste repo.
 - **Componente de teste para as telas** (React, clique/preenchimento) — cobertas por typecheck e
   pela varredura de domínio, mas sem teste de interação de tela ainda. Ver `BACKLOG.md` P2.2.
-- **Formato de `horaInicio`/`horaFim` na tela de malha** (`AbaMalha.tsx`) é texto livre, sem
-  validação de formato `HH:mm` — notado ao corrigir os achados da 4ª auditoria (ela não cobriu
-  esta tela), não corrigido ainda. Ver `BACKLOG.md` P2.6.
 
 ## Como retomar
 
