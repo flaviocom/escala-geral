@@ -141,7 +141,13 @@ export interface EventoSemEscala {
   data: DataISO
   /** `true` = ninguém é escalado no dia inteiro. `false` = só no intervalo abaixo. */
   diaTodo: boolean
-  /** Obrigatório quando `diaTodo` é `false`. Turno que COMEÇA dentro de `[horaInicio, horaFim)` é bloqueado. */
+  /**
+   * Obrigatório quando `diaTodo` é `false`. Bloqueia todo turno cuja janela SE SOBREPÕE a
+   * `[horaInicio, horaFim)` — não só o que começa dentro dela (ver `turnoNaJanela`, `malha.ts`).
+   * `horaFim` pode ser menor que `horaInicio`: o evento atravessa a meia-noite (ex.: 22:00–06:00) —
+   * `segmentosDoIntervalo` (`malha.ts`) trata isso corretamente. As duas pontas iguais não têm
+   * leitura sensata e são rejeitadas na tela (`Admin.tsx`) antes de chegar aqui.
+   */
   horaInicio?: string
   horaFim?: string
 }

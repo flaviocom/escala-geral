@@ -260,10 +260,21 @@ export function conferirPorFora(
     const canonicas = config.eventosSemEscala.filter((e) => e.diaTodo).map((e) => e.data).filter(dentro)
     const marcadas = bloco.turnos.filter((t) => t.santaCeia)
     for (const t of marcadas) if (t.pessoas.length > 0) furos.push(`${formatarBR(t.data)} é dia sem escala e tem ${t.pessoas.length} pessoa(s)`)
+    /*
+      🔴 ASSIMETRIA COM D9 — quarta auditoria externa, 20/08/2026. Este trecho dizia "coberta" assim
+      que UM turno do dia estivesse `santaCeia` (`.some`); `regras.ts` (D9) exige que TODOS os turnos
+      daquele dia estejam marcados (`.every`) — por causa do horário específico, que marca só parte
+      do dia de propósito. Provado ao vivo: dia de evento DIA TODO com um turno marcado corretamente
+      e outro turno do mesmo dia com 2 pessoas escaladas — D9 acusava, esta régua "independente"
+      (cujo propósito é achar o que D9 erra) não via furo nenhum. Mesmo critério das duas réguas.
+    */
+    const datasMarcadas = new Set(
+      [...new Set(marcadas.map((t) => t.data))].filter((d) => bloco.turnos.filter((t) => t.data === d).every((t) => t.santaCeia)),
+    )
     // Só cobra o calendário de bloco que o sistema gerou — o passado importado é o que já foi visto.
     if (bloco.origem !== 'importado')
       for (const d of canonicas)
-        if (!marcadas.some((t) => t.data === d) && bloco.turnos.some((t) => t.data === d))
+        if (!datasMarcadas.has(d) && bloco.turnos.some((t) => t.data === d))
           furos.push(`${formatarBR(d)} é dia sem escala no calendário e o bloco tem turno comum nele`)
     /*
       🔴 QUAIS DIAS — 06/08/2026. Dizia *"1 data(s) no calendário · 1 marcada(s)"*, e a pergunta dele

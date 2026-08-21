@@ -115,6 +115,56 @@ describe('evento sem escala — HORÁRIO ESPECÍFICO (novo, regra máxima)', () 
   })
 })
 
+describe('evento sem escala — VIRA A NOITE (S-068/S-069, quarta auditoria externa, 20/08/2026)', () => {
+  it('evento 23h–01h bloqueia a NOITE (faixa padrão 18h–24h) — o intervalo colide, mesmo cruzando a meia-noite', () => {
+    const malha: Malha = { regras: [{ diaSemana: 2, turnos: ['NOITE'] }] } // sem hora real: usa a faixa padrão
+    const { bloco } = gerarComEvento(malha, [
+      { nome: 'Vistoria noturna', data: '2026-09-08', diaTodo: false, horaInicio: '23:00', horaFim: '01:00' },
+    ])
+    const noite = bloco.turnos.find((t) => t.data === '2026-09-08' && t.tipo === 'NOITE')!
+    expect(noite.santaCeia).toBe(true)
+    expect(noite.capacidade).toBe(0)
+  })
+
+  it('plantão da malha 23h–01h × evento 00h–02h: colidem em 00h–01h, mesmo os dois cruzando a meia-noite', () => {
+    const malha: Malha = { regras: [{ diaSemana: 2, turnos: ['NOITE'], horaInicio: '23:00', horaFim: '01:00' }] }
+    const { bloco } = gerarComEvento(malha, [
+      { nome: 'Bloqueio de madrugada', data: '2026-09-08', diaTodo: false, horaInicio: '00:00', horaFim: '02:00' },
+    ])
+    const noite = bloco.turnos.find((t) => t.data === '2026-09-08' && t.tipo === 'NOITE')!
+    expect(noite.santaCeia).toBe(true)
+    expect(noite.capacidade).toBe(0)
+  })
+
+  it('plantão 22h–06h × evento 08h–09h da manhã seguinte: NÃO colidem — o vira-noite não vaza pro resto do dia', () => {
+    const malha: Malha = { regras: [{ diaSemana: 2, turnos: ['NOITE'], horaInicio: '22:00', horaFim: '06:00' }] }
+    const { bloco } = gerarComEvento(malha, [
+      { nome: 'Reunião de manhã', data: '2026-09-08', diaTodo: false, horaInicio: '08:00', horaFim: '09:00' },
+    ])
+    const noite = bloco.turnos.find((t) => t.data === '2026-09-08' && t.tipo === 'NOITE')!
+    expect(noite.santaCeia).toBeUndefined()
+    expect(noite.capacidade).toBeGreaterThan(0)
+  })
+})
+
+describe('dia todo com turno comum sobrando no mesmo dia (dado editado à mão) — quarta auditoria externa, 20/08/2026', () => {
+  it('D9 e conferirPorFora CONCORDAM — a assimetria (.some vs .every) foi corrigida', () => {
+    const malha: Malha = { regras: [{ diaSemana: 2, turnos: ['MANHA'] }] }
+    const { bloco, config } = gerarComEvento(malha, [{ nome: 'Manutenção', data: '2026-09-08', diaTodo: true }])
+    // construirGrade nunca produz isto sozinho (dia todo = um marcador só) — simula edição manual
+    // que deixou um turno comum extra, com gente escalada, no dia do evento. Foi este o cenário que
+    // o auditor usou para provar a assimetria: D9 acusava, `conferirPorFora` não via furo nenhum.
+    const blocoEditado = {
+      ...bloco,
+      turnos: [...bloco.turnos, { data: '2026-09-08', tipo: 'TARDE' as const, pessoas: ['p1', 'p2'], capacidade: 2 }],
+    }
+    const rel = validar({ bloco: blocoEditado, pessoas: pessoas(10), ultimaEscalaAnterior: {}, config })
+    const porFora = conferirPorFora(blocoEditado, pessoas(10), config)
+    expect(rel.falhasDuras.length).toBeGreaterThan(0)
+    expect(porFora.comFuro.length).toBeGreaterThan(0)
+  })
+})
+
 describe('hora real da malha propaga para o turno gerado — S-068/S-069', () => {
   it('RegraMalha com horaInicio/horaFim: o Turno gerado carrega a MESMA hora', () => {
     const malha: Malha = { regras: [{ diaSemana: 2, turnos: ['TARDE'], horaInicio: '14:00', horaFim: '16:30' }] }

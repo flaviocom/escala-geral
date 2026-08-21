@@ -42,6 +42,29 @@ const FAIXA_PADRAO_DO_PERIODO: Record<TipoTurno, [number, number]> = {
 }
 
 /**
+ * Um intervalo `[ini, fim)` em minutos, partido em pedaços que não atravessam a meia-noite.
+ *
+ * 🔴 VIRA-NOITE COLAPSAVA A JANELA — quarta auditoria externa, 20/08/2026. `23:00–01:00` (plantão
+ * ou evento comum em operação 24h) tem `fim < ini` em minutos — a comparação de sobreposição, que
+ * assume `ini < fim`, via consequência tratava o intervalo como vazio, e o bloqueio não bloqueava
+ * NADA, em silêncio, sem erro. Provado ao vivo pelo auditor com dois casos: NOITE padrão (18h–24h)
+ * contra evento 23h–01h, e plantão 23h–01h contra evento 00h–02h — os dois deveriam colidir e
+ * nenhum colidia.
+ *
+ * `fim > ini`: intervalo comum, um pedaço só. `fim <= ini`: atravessa a meia-noite, vira dois
+ * pedaços — `[ini, 1440)` e `[0, fim)`. `fim === ini` cai neste segundo caso de propósito: como
+ * dois horários iguais não têm leitura sensata como intervalo de UM minuto, a tela (`Admin.tsx`)
+ * rejeita essa entrada antes de chegar aqui — este código nunca precisa decidir o que ela significa.
+ */
+function segmentosDoIntervalo(iniMin: number, fimMin: number): Array<[number, number]> {
+  return fimMin > iniMin ? [[iniMin, fimMin]] : [[iniMin, 24 * 60], [0, fimMin]]
+}
+
+function segmentosSeSobrepoem(aIni: number, aFim: number, bIni: number, bFim: number): boolean {
+  return aIni < bFim && aFim > bIni
+}
+
+/**
  * Este turno (com hora real, ou só período) SE SOBREPÕE à janela do evento de horário específico?
  *
  * 🔴 Era "o turno COMEÇA dentro da janela" — bloquear 07h-09h não atingia a Manhã (faixa padrão
@@ -51,12 +74,13 @@ const FAIXA_PADRAO_DO_PERIODO: Record<TipoTurno, [number, number]> = {
  */
 function turnoNaJanela(tipo: TipoTurno, horaInicioTurno: string | undefined, horaFimTurno: string | undefined, evento: EventoSemEscala): boolean {
   if (evento.horaInicio == null || evento.horaFim == null) return false
-  const [ini, fim] = [minutosDoDia(evento.horaInicio), minutosDoDia(evento.horaFim)]
+  const segmentosEvento = segmentosDoIntervalo(minutosDoDia(evento.horaInicio), minutosDoDia(evento.horaFim))
   const [inicioTurno, fimTurno] =
     horaInicioTurno != null && horaFimTurno != null
       ? [minutosDoDia(horaInicioTurno), minutosDoDia(horaFimTurno)]
       : FAIXA_PADRAO_DO_PERIODO[tipo]
-  return inicioTurno < fim && fimTurno > ini
+  const segmentosTurno = segmentosDoIntervalo(inicioTurno, fimTurno)
+  return segmentosTurno.some(([tIni, tFim]) => segmentosEvento.some(([eIni, eFim]) => segmentosSeSobrepoem(tIni, tFim, eIni, eFim)))
 }
 
 /** Uma regra vale nesta data? */

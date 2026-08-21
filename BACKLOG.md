@@ -39,6 +39,7 @@ sempre, acima de N pessoas, ou opt-in por cliente? Ver `escala-porteiros/BACKLOG
 | P1.11 | Varredura de malha ampliada — 2000 cenários (era 200), elenco até 60 (era 26), + 6 casos-limite explícitos | ✅ 20/08 — pedido explícito: "muito mais parrudo, exaustivamente testado" |
 | P1.12 | 🔴 **2ª auditoria achou uma SEGUNDA colisão da mesma classe** — `App.tsx` gravava `myBrotherId`/`showMyShiftsOnly` sem namespace, mesmo depois da correção do P1.8 | ✅ 20/08 — corrigido dentro das 3 funções de preferência (não em cada chamada); teste `cofre.test.ts` que tinha virado vazio também corrigido, com guarda contra regressão silenciosa |
 | P1.13 | 3ª auditoria — varredura total de `localStorage`/`sessionStorage`/cookies/IndexedDB no repositório inteiro | ✅ 20/08 — **FECHADO.** Só 4 arquivos usam `localStorage`, todos namespaced; zero uso de sessionStorage/cookies/IndexedDB/service worker; teste de regressão simulado e confirmado que detecta a volta do bug |
+| P1.14 | 4ª auditoria — motor de hora real (P2.1/P2.5), agente cego mandado a refutar | ✅ 20/08 — achou **4 defeitos reais**, todos corrigidos com teste de regressão reproduzindo o cenário exato de cada um. Ver "4ª auditoria — hora real" abaixo. 432/432 testes, typecheck/gate/build limpos. **5ª auditoria** (verificação cética das correções) disparada, resultado pendente |
 
 ## P2 — Declarado, não construído ⚪
 
@@ -49,6 +50,7 @@ sempre, acima de N pessoas, ou opt-in por cliente? Ver `escala-porteiros/BACKLOG
 | P2.3 | Evento avulso numa data específica (não recorrente) — para a MALHA (não confundir com evento SEM escala, que já é por data) | Estava no desenho original do P4.w (`escala-porteiros/docs/FASE2.md`), não construído ainda |
 | P2.4 | ✅ Validação visual autônoma ao vivo — feita em 20/08. Ver "Validação visual" abaixo | Elenco (8 pessoas), identidade custom ("Segurança Alfa"/"Vigilante"), logo, geração real (133 turnos, 17/17 regras), Ajustar, Conferir por fora — todos testados no navegador, não só em teste unitário |
 | P2.5 | ✅ **"Santa Ceia" generalizado para `EventoSemEscala`** (nome editável por evento, data editável, dia todo ou horário específico) | Feito 20/08, junto com P2.1 — mesma rodada, mesmo pedido. `construirGrade`, D9 (`regras.ts`), conferência independente, `ScheduleTable.tsx`, `EscalaImagem.tsx` todos generalizados. 428/428 testes, 2 bugs reais achados pelo teste novo (`evento-sem-escala.test.ts`) e corrigidos antes de publicar: semântica de sobreposição errada, e D9 com falso positivo em dia de horário específico |
+| P2.6 | Campo de horário da MALHA (`AbaMalha.tsx`, `RegraMalha.horaInicio/horaFim`) é texto livre — sem validação de formato `HH:mm` nem de igualdade `horaInicio === horaFim` | Notado ao corrigir os achados da 4ª auditoria (ela auditou o campo do EVENTO em `Admin.tsx`, que já ganhou essa validação; não cobriu este). Não é o mesmo bug reproduzido — é a mesma classe, num campo diferente. Baixo risco hoje (entrada malformada vira `NaN` na comparação de minutos, que `segmentosDoIntervalo` sempre lê como falso — silencioso, não quebra, mas também não bloqueia o turno que deveria). Registrado, não corrigido |
 
 ## Validação visual — o que foi provado ao vivo em 20/08 (não só teste automatizado)
 
@@ -93,6 +95,45 @@ desenhada: (1) a primeira versão de `turnoNaJanela` bloqueava só turnos que CO
 janela, não que se SOBREPÕEM — um evento 07h-09h não atingia a Manhã padrão (06h-12h) mesmo a
 cobrindo inteira; (2) a regra D9 disparava falso positivo num dia de horário específico, porque o
 turno comum sobrando (correto) parecia "marcado no bloco mas fora do calendário".
+
+## 4ª auditoria — hora real (20/08/2026)
+
+Agente independente, cego, mandado a refutar o refactor de "hora real" (P2.1/P2.5) acima. Achou 4
+defeitos reais — nenhum hipotético, todos provados ao vivo pelo próprio auditor antes de reportar.
+
+1. 🔴 **CRÍTICO — vira-a-noite colapsava a janela em silêncio.** `turnoNaJanela`
+   (`src/dominio/malha.ts`) convertia `HH:mm` em minutos e comparava sobreposição assumindo
+   `fim > ini`. Um horário que atravessa meia-noite (23:00–01:00 — plantão comum em operação 24h)
+   vira `fim < ini` em minutos, e o intervalo colapsava: o evento não bloqueava NADA, sem exceção,
+   sem aviso. Provado com dois casos: evento 23h–01h contra turno NOITE padrão (18h–24h, que cobre
+   exatamente 23h-24h) não bloqueava; plantão 23h-01h da malha contra evento 00h-02h (deveria
+   colidir em 00h-01h) também não bloqueava. **Corrigido:** `segmentosDoIntervalo` parte um
+   intervalo que cruza meia-noite em dois pedaços (`[ini,1440)` e `[0,fim)`); `turnoNaJanela` agora
+   testa sobreposição pedaço-a-pedaço. 3 testes novos em `evento-sem-escala.test.ts` reproduzem os
+   2 cenários do auditor mais um caso "não vaza pro resto do dia".
+2. 🔴 **CRÍTICO — a tela aceitava a entrada que detonava o item 1.** `Admin.tsx` só validava campos
+   vazios, nunca a relação entre `horaInicio` e `horaFim` — "22:00 às 06:00" (o caso mais natural de
+   vira-a-noite) passava direto. **Corrigido, sem proibir o vira-a-noite de propósito:**
+   `horaFim < horaInicio` continua sendo aceito (é matematicamente correto agora, pelo item 1);
+   só `horaFim === horaInicio` (sem leitura sensata como intervalo) é rejeitado, com mensagem
+   visível (`erroEvento`) e uma dica na tela ("Até" pode ser menor que "Das" — vira a noite).
+3. 🟡 **MÉDIO — a régua "independente" tinha um ponto cego que a régua principal não tem.**
+   `conferencia-independente.ts` §8 usava `.some()` para decidir se um dia estava "coberto" pelo
+   evento — bastava UM turno do dia estar marcado. A regra D9 (`regras.ts`) usa `.every()` — exige
+   TODOS os turnos do dia marcados, por causa do horário específico (que marca só parte do dia de
+   propósito). Provado: dia de evento DIA TODO com um turno marcado certo e outro turno do mesmo
+   dia com 2 pessoas escaladas (dado editado à mão) — D9 acusava, `conferirPorFora` não via furo
+   nenhum. **Corrigido:** mesmo critério `.every()` nas duas réguas. Teste novo comparando as duas
+   no cenário exato.
+4. 🟡 **MÉDIO — rótulo cravado sobrou fora da lista corrigida.** `AbaAjustar.tsx` ainda tinha
+   "SANTA CEIA" fixo em vez de `turno.rotulo` (o nome editável do evento) — esta tela não estava na
+   lista das telas que a rodada anterior disse ter corrigido (`Admin.tsx`, `ScheduleTable.tsx`,
+   `EscalaImagem.tsx`). **Corrigido:** `{turno.rotulo || 'DIA SEM ESCALA'}`. Grep no repo inteiro
+   confirmou que não sobra mais nenhum rótulo cravado fora de comentários/testes/fixtures.
+
+**Resultado:** 432/432 testes (era 428), typecheck limpo, `npm run generico` limpo, build limpo.
+5ª auditoria (verificação cética das 4 correções acima) disparada — resultado ainda pendente no
+momento deste registro.
 
 ## Como usar este arquivo
 

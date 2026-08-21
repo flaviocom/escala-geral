@@ -6,9 +6,10 @@
  * um dia da semana, os turnos daquele dia, a recorrência (toda semana / a cada N dias a partir de
  * uma âncora / só na N-ésima ocorrência do mês — "1º sábado", por exemplo) e um rótulo livre.
  *
- * O horário (`horaInicio`/`horaFim`) é só texto informativo — ver a nota em `RegraMalha` (tipos.ts)
- * sobre por que ele não decide o encaixe. O motor de geração não muda nesta tela: ela edita o DADO
- * que ele consome (`config.malhaPadrao`), nunca o algoritmo.
+ * O horário (`horaInicio`/`horaFim`) é hora REAL, sempre Brasília — regra máxima do dono, S-068/S-069,
+ * 20/08/2026: viaja para cada `Turno` gerado e decide o encaixe de todo evento de horário específico
+ * (ver a nota em `RegraMalha`, tipos.ts, e `turnoNaJanela` em `malha.ts`). O motor de geração não
+ * muda nesta tela: ela edita o DADO que ele consome (`config.malhaPadrao`), nunca o algoritmo.
  */
 import React, { useState } from 'react'
 import { Clock, Plus, Trash2 } from 'lucide-react'

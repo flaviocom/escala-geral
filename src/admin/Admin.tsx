@@ -1822,6 +1822,7 @@ const AbaGerar: React.FC<{
   const [rascunhoEvento, setRascunhoEvento] = useState<{ nome: string; data: string; diaTodo: boolean; horaInicio: string; horaFim: string }>({
     nome: '', data: '', diaTodo: true, horaInicio: '', horaFim: '',
   })
+  const [erroEvento, setErroEvento] = useState('')
   const eventosNoPeriodo = (config.eventosSemEscala ?? []).filter(
     (e) => diferencaEmDias(de, e.data) >= 0 && diferencaEmDias(e.data, ate) >= 0,
   )
@@ -2078,6 +2079,9 @@ const AbaGerar: React.FC<{
                     className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
                   />
                 </label>
+                <p className="sm:col-span-2 text-xs text-gray-400">
+                  "Até" pode ser menor que "Das" — vira a noite (ex.: 22:00 até 06:00).
+                </p>
               </>
             )}
           </div>
@@ -2086,10 +2090,19 @@ const AbaGerar: React.FC<{
             <button
               title="Acrescenta o evento. Vale na próxima geração"
               onClick={() => {
+                setErroEvento('')
                 const { nome, data, diaTodo, horaInicio, horaFim } = rascunhoEvento
-                if (!nome.trim() || !data) return
-                if (!diaTodo && (!horaInicio || !horaFim)) return
-                if ((config.eventosSemEscala ?? []).some((e) => e.data === data)) return
+                if (!nome.trim() || !data) return setErroEvento('Preencha o nome e a data do evento.')
+                if (!diaTodo && (!horaInicio || !horaFim)) return setErroEvento('Preencha o horário de início e de fim.')
+                /*
+                  🔴 HORÁRIO IGUAL DETONAVA A JANELA EM SILÊNCIO — quarta auditoria externa, 20/08/2026.
+                  `horaFim < horaInicio` é válido (vira a noite — ver `segmentosDoIntervalo`, malha.ts).
+                  Mas `horaFim === horaInicio` não tem leitura sensata como intervalo: a mesma regra de
+                  vira-a-noite o leria como "o dia inteiro menos um instante", o oposto do que a pessoa
+                  digitou. Só este caso é rejeitado aqui — a tela é a única porta para essa entrada.
+                */
+                if (!diaTodo && horaInicio === horaFim) return setErroEvento('"Das" e "Até" não podem ser o mesmo horário.')
+                if ((config.eventosSemEscala ?? []).some((e) => e.data === data)) return setErroEvento('Já existe um evento cadastrado nesta data.')
                 const novo: EventoSemEscala = diaTodo
                   ? { nome: nome.trim(), data, diaTodo: true }
                   : { nome: nome.trim(), data, diaTodo: false, horaInicio, horaFim }
@@ -2104,6 +2117,7 @@ const AbaGerar: React.FC<{
               vale na próxima geração · vai para o ar quando você publicar
             </span>
           </div>
+          {erroEvento && <p className="mt-2 text-xs font-medium text-red-600">{erroEvento}</p>}
         </div>
 
         {/*

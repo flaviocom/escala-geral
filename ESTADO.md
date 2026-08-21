@@ -10,7 +10,33 @@
 
 **Nasceu hoje** (S-068/S-069, escala-porteiros), a partir da trilha genérica já provada sem texto
 de cliente. Site e área administrativa no ar, escala zerada. Duas telas que faltavam no produto
-original (malha e mensagem configuráveis) já construídas, testadas e publicadas.
+original (malha e mensagem configuráveis) já construídas, testadas e publicadas. **Horário real**
+(regra máxima do dono) implementado, coexistindo com o período — 4 rodadas de auditoria
+independente já rodadas sobre este repositório, a 5ª em andamento.
+
+## Onde ficou hoje, ao final desta sessão
+
+`Horário real, sempre Brasília` (P2.1/P2.5) — o dono não aceita "período fixo" nem "horário
+fixo": tela pode registrar hora exata (`HH:mm`, texto puro, nunca `Date`), e o motor bloqueia por
+SOBREPOSIÇÃO de intervalo, inclusive quando o horário atravessa a meia-noite (plantão 22h–06h,
+por exemplo). **4ª auditoria independente** (cega, mandada a refutar) achou 4 defeitos reais nesse
+refactor — todos corrigidos, com teste de regressão reproduzindo o cenário exato de cada um:
+
+1. 🔴 CRÍTICO — `turnoNaJanela` (`malha.ts`) colapsava a janela quando o horário virava a noite
+   (23h–01h): a checagem de sobreposição assumia `fim > ini`. Corrigido com partição do intervalo
+   em pedaços que não cruzam meia-noite (`segmentosDoIntervalo`).
+2. 🔴 CRÍTICO — `Admin.tsx` aceitava a entrada que detonava o item 1, sem validação nenhuma.
+   Corrigido: `horaFim < horaInicio` (vira a noite) é aceito de propósito; `horaFim === horaInicio`
+   (sem leitura sensata) é rejeitado com mensagem visível.
+3. 🟡 MÉDIO — `conferencia-independente.ts` usava `.some()` para "dia marcado", enquanto a regra D9
+   (`regras.ts`) usa `.every()` — assimetria que fazia a régua "independente" não ver um furo que a
+   régua principal via. Corrigido: mesmo critério nas duas.
+4. 🟡 MÉDIO — `AbaAjustar.tsx` tinha "SANTA CEIA" cravado em vez do nome editável do evento
+   (`turno.rotulo`). Corrigido.
+
+432/432 testes (era 428), typecheck limpo, `npm run generico` limpo, build limpo. **5ª auditoria
+independente disparada** (verificação cética das 4 correções acima) — resultado ainda pendente
+no momento deste registro; ver `BACKLOG.md` P1.14 para o veredito quando sair.
 
 ## O que foi feito nesta sessão de fundação
 
@@ -33,14 +59,15 @@ original (malha e mensagem configuráveis) já construídas, testadas e publicad
 8. **Auditoria independente** disparada (agente cego, mandado a refutar) — ver o resultado no
    próximo registro deste arquivo ou em `BACKLOG.md` se achou algo.
 
-## O que NÃO foi feito nesta rodada (fora de escopo, registrado)
+## O que NÃO foi feito ainda (fora de escopo, registrado)
 
 - **Onboarding sem credencial do GitHub para o comprador.** Exige backend + banco multi-tenant —
   pendência de pesquisa registrada em `escala-porteiros/docs/FASE2.md` (P4.y), não neste repo.
-- **Horário real decidindo o encaixe** (hoje é só informativo — o motor ainda encaixa por
-  MANHA/TARDE/NOITE). Mudar isso é mudança de motor, não desta rodada.
-- **Componente de teste para as duas telas novas** (React) — cobertas por typecheck e pela
-  varredura de domínio, mas sem teste de interação de tela ainda.
+- **Componente de teste para as telas** (React, clique/preenchimento) — cobertas por typecheck e
+  pela varredura de domínio, mas sem teste de interação de tela ainda. Ver `BACKLOG.md` P2.2.
+- **Formato de `horaInicio`/`horaFim` na tela de malha** (`AbaMalha.tsx`) é texto livre, sem
+  validação de formato `HH:mm` — notado ao corrigir os achados da 4ª auditoria (ela não cobriu
+  esta tela), não corrigido ainda. Ver `BACKLOG.md` P2.6.
 
 ## Como retomar
 

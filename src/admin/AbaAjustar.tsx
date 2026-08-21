@@ -231,7 +231,7 @@ const LinhaTurno: React.FC<{
     return (
       <div className="px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 text-sm">
         <span className="font-semibold text-amber-900">
-          {formatarBR(turno.data)} · SANTA CEIA
+          {formatarBR(turno.data)} · {turno.rotulo || 'DIA SEM ESCALA'}
         </span>
         <span className="text-amber-700 text-xs ml-2">sem {vocabulario.singular.toLowerCase()} escalado — não há o que ajustar</span>
       </div>
