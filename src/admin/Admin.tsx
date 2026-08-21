@@ -8,7 +8,7 @@
  * O fluxo é: **elenco → gerar → conferir → publicar**, e a publicação não tira o site do ar em
  * momento nenhum — ela grava um arquivo de dados, e o site passa a ler o arquivo novo.
  */
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle, CheckCircle, Download, Eye, EyeOff, KeyRound, Loader2, LogOut, Phone, Plus, RefreshCw,
   History, RotateCcw, ShieldCheck, Trash2, Upload, UserCheck, UserMinus, XCircle,
@@ -32,7 +32,7 @@ import { diaDaSemana, diferencaEmDias, ehDataValida, formatarBR, sugerirFim, hoj
 import { AbaAjustar } from './AbaAjustar'
 import { AbaMalha } from './AbaMalha'
 import { AbaMensagem } from './AbaMensagem'
-import { lerRascunho, gravarRascunho, limparRascunho, type Rascunho } from './rascunho'
+import { lerRascunho, gravarRascunho, limparRascunho } from './rascunho'
 import { arbitrar, auditar, medir, pedirProposta, type Placar, type ProgressoMotor } from './motor'
 import { Sparkles } from 'lucide-react'
 
@@ -541,10 +541,34 @@ export const Admin: React.FC<{ dados: DadosPublicados }> = ({ dados: dadosInicia
 
     ⚠️ Isto **não publica nada**. Vive no navegador deste aparelho até ele apertar Publicar — e é
     por isso que pode guardar qualquer coisa sem risco para quem lê a escala.
+
+    🔴 MAS NÃO ANTES DE UMA MUDANÇA DE VERDADE — achado ao vivo, 20/08/2026, o mesmo incidente do
+    banner acima. Este efeito rodava também na MONTAGEM, antes de qualquer edição — então a simples
+    ação de ABRIR a tela pela primeira vez já gravava um retrato do que estava publicado NAQUELE
+    instante como se fosse um "rascunho em andamento". Toda visita seguinte lia esse retrato
+    congelado e escondia qualquer dado publicado depois — mesmo sem a pessoa jamais ter editado
+    nada. Foi assim que eu mesmo, testando a carga do dado real minutos atrás, e o Flavio, abrindo o
+    Elenco pela primeira vez depois da carga, vimos dado velho: a PRIMEIRA visita de cada um já
+    tinha, silenciosamente, travado um rascunho vazio meses antes.
+
+    A comparação é contra os valores CAPTURADOS na montagem (`useRef`, nunca reatribuído depois) —
+    não um contador de quantas vezes o efeito já rodou. Um contador quebra sob o `StrictMode` do
+    `main.tsx`: em desenvolvimento, o React roda todo efeito de montagem DUAS vezes de propósito
+    (para expor efeito colateral escondido), e um contador "pula só a primeira" trataria a segunda
+    chamada como uma mudança de verdade — reintroduzindo o mesmo bug, só que visível apenas em `npm
+    run dev`, nunca no build de produção que de fato vai para o ar. Comparar contra o valor
+    capturado é seguro não importa quantas vezes o efeito rode: só passa quando `pessoas`/`config`
+    trocaram de referência de verdade, e isso só acontece via `setPessoas`/`setConfig`/`setDe`/
+    `setAte` — ou seja, uma edição real.
   */
+  const pessoasIniciais = useRef(pessoas).current
+  const configIniciais = useRef(config).current
+  const deInicial = useRef(de).current
+  const ateInicial = useRef(ate).current
   useEffect(() => {
+    if (pessoas === pessoasIniciais && config === configIniciais && de === deInicial && ate === ateInicial) return
     gravarRascunho({ de, ate, config, pessoas })
-  }, [de, ate, config, pessoas])
+  }, [de, ate, config, pessoas, pessoasIniciais, configIniciais, deInicial, ateInicial])
 
   /**
    * 🔴 UMA GRAVAÇÃO POR VEZ — e ela cobre PUBLICAR **e** REVERTER, desde 05/08/2026.
@@ -723,6 +747,40 @@ export const Admin: React.FC<{ dados: DadosPublicados }> = ({ dados: dadosInicia
         </nav>
       </header>
 
+      {/*
+        🔴 O AVISO DE RASCUNHO VIVIA SÓ DENTRO DA ABA "GERAR" — achado ao vivo pelo Flavio,
+        20/08/2026: ele abriu o Elenco (a primeira aba) e não viu as pessoas reais recém-carregadas
+        — porque a MESMA sessão do navegador tinha, meses antes, aberto esta tela com a escala ainda
+        zerada, e `gravarRascunho` grava um retrato a CADA render (`useEffect` sem edição nenhuma do
+        usuário) — então o rascunho vazio nasceu sozinho, na primeira visita, sem ele tocar em nada.
+        Toda visita seguinte lia esse rascunho e escondia o publicado, em QUALQUER aba — mas o aviso
+        só aparecia se ele abrisse "Gerar escala" primeiro. Isso me enganou também, minutos antes,
+        testando a própria carga de dado.
+
+        Movido para AQUI — acima de toda aba, sempre visível — para que a pessoa NUNCA veja dado
+        publicado ser silenciosamente substituído por um rascunho sem saber. `rascunho.ts` continua
+        sendo a fonte da verdade sobre o que é rascunho; isto só garante que o aviso não fica preso
+        numa aba que a pessoa pode nunca abrir.
+      */}
+      {rascunhoInicial && (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <span>
+              <strong>Toda aba aqui está mostrando o que ficou em andamento neste aparelho</strong>,
+              guardado em <strong>{formatarQuando(rascunhoInicial.em)}</strong> — não o que está
+              publicado agora. Elenco, malha, identidade e datas podem estar desatualizados.
+            </span>
+            <button
+              title="Descarta o que está em andamento e volta aos valores que estão publicados"
+              onClick={() => { limparRascunho(); location.reload() }}
+              className="ml-auto rounded-lg border border-amber-400 bg-white px-2.5 py-1 font-semibold text-amber-900 hover:bg-amber-100"
+            >
+              Descartar e usar o publicado
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
         {aba === 'elenco' && <AbaElenco pessoas={pessoas} aoMudar={setPessoas} />}
         {aba === 'malha' && <AbaMalha config={config} aoMudarConfig={setConfig} />}
@@ -737,7 +795,6 @@ export const Admin: React.FC<{ dados: DadosPublicados }> = ({ dados: dadosInicia
             segredos={segredos}
             de={de}
             ate={ate}
-            rascunhoInicial={rascunhoInicial}
             aoMudarDe={setDe}
             aoMudarAte={setAte}
             aoMudarPessoas={setPessoas}
@@ -1490,16 +1547,6 @@ const AbaGerar: React.FC<{
   /** O intervalo vive no Admin: trocar de aba desmontava esta e apagava o que estava digitado. */
   de: string
   ate: string
-  /*
-    🔴 VEM POR PROP, e não de uma segunda leitura aqui dentro. A primeira versão relia o
-    `localStorage` dentro desta aba — e aí enxergava o rascunho que o próprio efeito de gravação
-    tinha acabado de criar, na montagem. Resultado medido: o aviso *"você deixou em andamento"*
-    aparecia numa tela limpa, e continuava aparecendo logo após DESCARTAR.
-
-    Quem lê o rascunho é o `Admin`, uma vez, ANTES de qualquer gravação. Duas leituras da mesma
-    coisa em momentos diferentes são duas verdades.
-  */
-  rascunhoInicial: Rascunho | null
   aoMudarDe: (v: string) => void
   aoMudarAte: (v: string) => void
   aoMudarPessoas: (p: Pessoa[]) => void
@@ -1508,7 +1555,7 @@ const AbaGerar: React.FC<{
   aoGerar: (b: Bloco | null, relato: string, versoesComparadas?: number, veioDeRecusa?: boolean) => void
   versoesComparadas: number
   jaRecusouAlguma: boolean
-}> = ({ dados, pessoas, blocoNovo, relato, segredos, de, ate, rascunhoInicial, aoMudarDe, aoMudarAte, aoMudarPessoas, config, aoMudarConfig, aoGerar, versoesComparadas, jaRecusouAlguma }) => {
+}> = ({ dados, pessoas, blocoNovo, relato, segredos, de, ate, aoMudarDe, aoMudarAte, aoMudarPessoas, config, aoMudarConfig, aoGerar, versoesComparadas, jaRecusouAlguma }) => {
   const [ocupado, setOcupado] = useState(false)
   const [falha, setFalha] = useState<string>('')
   /** Muda a cada "gerar outra combinação" — é o que faz a próxima rodada explorar outro caminho. */
@@ -1836,30 +1883,10 @@ const AbaGerar: React.FC<{
     <>
       <Cartao titulo="Gerar" subtitulo="Escolha o intervalo. Antes dele, nada é tocado — o que já foi divulgado continua valendo.">
         {/*
-          🔴 RASCUNHO INVISÍVEL É PIOR QUE NENHUM.
-
-          A tela passa a lembrar o que ele digitou — datas, pessoas por turno, Santas Ceias, elenco.
-          Se ela lembrasse **calada**, ele veria números que não estão no ar achando que estão, e a
-          diferença só apareceria no dia em que alguém reclamasse da escala.
-
-          Então o rascunho se declara, com a hora, e com a saída ao lado. Guardar sem avisar seria
-          trocar um problema (perder trabalho) por outro pior (confiar no que não foi publicado).
+          🔴 O AVISO DE RASCUNHO MOROU AQUI ATÉ 20/08/2026 — subiu para acima de toda aba (no
+          componente `Admin`, junto do cabeçalho) porque ficar só nesta aba escondia o aviso de quem
+          abria Elenco ou Malha primeiro. Ver o comentário lá para o incidente que motivou a mudança.
         */}
-        {rascunhoInicial && (
-          <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/70 px-3 py-2 text-xs text-indigo-900">
-            <span>
-              Esta tela está mostrando <strong>o que você deixou em andamento</strong>, guardado neste
-              aparelho em <strong>{formatarQuando(rascunhoInicial.em)}</strong>. Nada disto está no ar até você publicar.
-            </span>
-            <button
-              title="Descarta o que está em andamento e volta aos valores que estão publicados"
-              onClick={() => { limparRascunho(); location.reload() }}
-              className="ml-auto rounded-lg border border-indigo-300 bg-white px-2.5 py-1 font-semibold text-indigo-800 hover:bg-indigo-100"
-            >
-              Descartar e usar o publicado
-            </button>
-          </div>
-        )}
 
         {/*
           🔴 O NOME, O CABEÇALHO E O LOGOTIPO DA ESCALA — 05/08/2026, mesmo motivo da Santa Ceia
