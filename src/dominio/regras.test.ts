@@ -36,7 +36,7 @@ const CONFIG: Configuracao = {
   versao: 1,
   capacidadePadrao: 3,
   malhaPadrao: { regras: [] },
-  santaCeia: ['2026-08-16'],
+  eventosSemEscala: [{ nome: 'Santa Ceia', data: '2026-08-16', diaTodo: true }],
   identidade: { titulo: 'Teste', subtitulo: 'Teste', logo: '', pessoa: { singular: 'Pessoa', plural: 'pessoas' } },
 }
 

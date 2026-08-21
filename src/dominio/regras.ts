@@ -494,7 +494,7 @@ function gradeEsperada(ctx: Contexto): Turno[] | null | 'data-impossivel' {
       fim: ctx.bloco.fim,
       malha: ctx.bloco.malha,
       capacidadePadrao: ctx.config.capacidadePadrao,
-      santaCeia: ctx.config.santaCeia,
+      eventosSemEscala: ctx.config.eventosSemEscala,
     })
   } catch {
     // 🔴 A CAUSA TEM DE SER A CERTA — sexta auditoria externa, 05/08/2026. Devolver `null` aqui fazia
@@ -561,8 +561,25 @@ const D9: Regra = {
     //     Se a data canônica cai no período e o bloco tem turno comum nela, a marca se perdeu —
     //     e é assim que aparece gente escalada no dia da Ceia. Se o bloco não tem turno nenhum
     //     naquele dia, está certo: dia sem culto, ou dia pulado.
-    const datasCanonicas = new Set(ctx.config.santaCeia.filter(dentroDoPeriodo))
-    const datasMarcadas = new Set(marcadosNoBloco.map((t) => t.data))
+    //
+    //     Só eventos de DIA TODO entram aqui — S-068/S-069, 20/08/2026. Um evento de HORÁRIO
+    //     ESPECÍFICO bloqueia só parte do dia de propósito; o bloco TER turno comum no resto do
+    //     dia é o comportamento correto, não um sinal de marca perdida.
+    const datasCanonicas = new Set(
+      ctx.config.eventosSemEscala.filter((e) => e.diaTodo).map((e) => e.data).filter(dentroDoPeriodo),
+    )
+    /*
+     * 🔴 Só conta como "dia marcado", para as comparações (2) e (3) abaixo, quando o DIA INTEIRO
+     * está marcado (nenhum turno comum sobra naquele dia) — achado pelo próprio teste, 20/08/2026.
+     * Um dia de HORÁRIO ESPECÍFICO tem turno marcado E turno comum lado a lado, de propósito; sem
+     * este filtro, ele disparava "está marcado no bloco, mas não consta do calendário" — falso,
+     * porque horário específico não entra em `datasCanonicas` (só diaTodo entra).
+     */
+    const datasMarcadas = new Set(
+      [...new Set(marcadosNoBloco.map((t) => t.data))].filter((d) =>
+        ctx.bloco.turnos.filter((t) => t.data === d).every((t) => t.santaCeia),
+      ),
+    )
 
     if (congelado(ctx))
       return ok(

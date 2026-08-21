@@ -36,7 +36,7 @@ const CONFIG: Configuracao = {
   versao: 1,
   capacidadePadrao: 3,
   malhaPadrao: MALHA_ATUAL,
-  santaCeia: [],
+  eventosSemEscala: [],
   identidade: { titulo: 'Teste', subtitulo: 'Teste', logo: '', pessoa: { singular: 'Pessoa', plural: 'pessoas' } },
 }
 
@@ -215,7 +215,7 @@ describe('Santa Ceia', () => {
     const elenco = pessoas(16)
     const grade = construirGrade({
       inicio: '2026-08-01', fim: '2026-08-31',
-      malha: MALHA_ATUAL, capacidadePadrao: 3, santaCeia: ['2026-08-16'],
+      malha: MALHA_ATUAL, capacidadePadrao: 3, eventosSemEscala: [{ nome: 'Santa Ceia', data: '2026-08-16', diaTodo: true }],
     })
     const r = gerar({
       inicio: '2026-08-01', fim: '2026-08-31', grade,

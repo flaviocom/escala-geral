@@ -63,13 +63,13 @@ describe('construirGrade recusa data que não existe — nas TRÊS portas', () =
       .toThrow(/não existe no calendário/)
   })
 
-  it('🔴 SANTA CEIA impossível', () => {
-    expect(() => construirGrade({ inicio: '2026-03-01', fim: '2026-03-31', malha, capacidadePadrao: 3, santaCeia: ['2026-02-30'] }))
+  it('🔴 evento sem escala com data impossível', () => {
+    expect(() => construirGrade({ inicio: '2026-03-01', fim: '2026-03-31', malha, capacidadePadrao: 3, eventosSemEscala: [{ nome: 'Teste', data: '2026-02-30', diaTodo: true }] }))
       .toThrow(/não existe no calendário/)
   })
 
   it('a outra ponta: as três datas reais passam', () => {
-    expect(() => construirGrade({ inicio: '2026-03-01', fim: '2026-03-31', malha, capacidadePadrao: 3, santaCeia: ['2026-03-08'] }))
+    expect(() => construirGrade({ inicio: '2026-03-01', fim: '2026-03-31', malha, capacidadePadrao: 3, eventosSemEscala: [{ nome: 'Teste', data: '2026-03-08', diaTodo: true }] }))
       .not.toThrow()
   })
 })

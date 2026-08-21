@@ -8,15 +8,55 @@
  * Aqui a malha é **dado**. Trocar dias e turnos é editar configuração, não código.
  */
 import { diaDaSemana, diferencaEmDias, ehDataValida, intervaloDeDatas, ocorrenciaNoMes, type DataISO } from './datas'
-import type { Malha, Turno } from './tipos'
+import type { EventoSemEscala, Malha, TipoTurno, Turno } from './tipos'
 
 export interface OpcoesMalha {
   inicio: DataISO
   fim: DataISO
   malha: Malha
   capacidadePadrao: number
-  /** Datas de Santa Ceia. Nesses dias não se escala ninguém. */
-  santaCeia?: DataISO[]
+  /** Dias sem escala — dia inteiro ou só um horário. Nome editável por evento. */
+  eventosSemEscala?: EventoSemEscala[]
+}
+
+/**
+ * `HH:mm` → minutos desde meia-noite, só para COMPARAR horários — nunca para exibir nem para
+ * construir `Date`. Texto puro entra, número puro sai; nenhum fuso horário é consultado em nenhum
+ * passo, então não há fuso para errar (regra máxima: sempre Brasília, sempre horário de parede).
+ */
+function minutosDoDia(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number)
+  return h * 60 + m
+}
+
+/**
+ * Faixa padrão de cada período, só para decidir se um evento de HORÁRIO ESPECÍFICO atinge um turno
+ * que só tem período (sem hora real própria) — ex.: "bloquear 14h-16h" precisa saber se isso cai
+ * dentro do que a tela chama de "Tarde". Convenção de casa, declarada aqui, não pesquisada: sem
+ * fonte de mercado para "que horas começa a tarde" de um produto que pode ser qualquer operação.
+ */
+const FAIXA_PADRAO_DO_PERIODO: Record<TipoTurno, [number, number]> = {
+  MANHA: [6 * 60, 12 * 60],
+  TARDE: [12 * 60, 18 * 60],
+  NOITE: [18 * 60, 24 * 60],
+}
+
+/**
+ * Este turno (com hora real, ou só período) SE SOBREPÕE à janela do evento de horário específico?
+ *
+ * 🔴 Era "o turno COMEÇA dentro da janela" — bloquear 07h-09h não atingia a Manhã (faixa padrão
+ * 06h-12h, começa às 06h) mesmo a Manhã cobrindo o horário inteiro do bloqueio. Achado pelo próprio
+ * teste (`evento-sem-escala.test.ts`), não em produção — sobreposição de intervalo é a semântica
+ * certa: dois intervalos colidem quando um começa antes do outro terminar, nos dois sentidos.
+ */
+function turnoNaJanela(tipo: TipoTurno, horaInicioTurno: string | undefined, horaFimTurno: string | undefined, evento: EventoSemEscala): boolean {
+  if (evento.horaInicio == null || evento.horaFim == null) return false
+  const [ini, fim] = [minutosDoDia(evento.horaInicio), minutosDoDia(evento.horaFim)]
+  const [inicioTurno, fimTurno] =
+    horaInicioTurno != null && horaFimTurno != null
+      ? [minutosDoDia(horaInicioTurno), minutosDoDia(horaFimTurno)]
+      : FAIXA_PADRAO_DO_PERIODO[tipo]
+  return inicioTurno < fim && fimTurno > ini
 }
 
 /** Uma regra vale nesta data? */
@@ -64,19 +104,22 @@ export function construirGrade(op: OpcoesMalha): Turno[] {
   */
   if (!ehDataValida(op.inicio)) throw new Error(`Data inicial "${op.inicio}" não existe no calendário.`)
   if (!ehDataValida(op.fim)) throw new Error(`Data final "${op.fim}" não existe no calendário.`)
-  for (const d of op.santaCeia ?? [])
-    if (!ehDataValida(d)) throw new Error(`Data de Santa Ceia "${d}" não existe no calendário.`)
+  for (const e of op.eventosSemEscala ?? [])
+    if (!ehDataValida(e.data)) throw new Error(`Data de "${e.nome}" ("${e.data}") não existe no calendário.`)
 
-  const ceias = new Set(op.santaCeia ?? [])
+  // Um evento por data — a última entrada vence se houver duas no mesmo dia (a tela impede isso).
+  const eventoPorData = new Map((op.eventosSemEscala ?? []).map((e) => [e.data, e]))
   const turnos: Turno[] = []
 
   for (const data of intervaloDeDatas(op.inicio, op.fim)) {
-    if (ceias.has(data)) {
-      // Só marca o dia se ele teria culto — Santa Ceia numa quinta-feira sem culto
-      // não precisa aparecer na escala.
-      const teriaCulto = op.malha.regras.some((r) => regraValeEm(r, data))
-      if (teriaCulto) {
-        turnos.push({ data, tipo: 'MANHA', pessoas: [], capacidade: 0, santaCeia: true, rotulo: 'SANTA CEIA' })
+    const evento = eventoPorData.get(data)
+
+    if (evento?.diaTodo) {
+      // Só marca o dia se ele teria expediente — um evento de dia todo numa data sem
+      // nenhum turno previsto não precisa aparecer na escala.
+      const teriaExpediente = op.malha.regras.some((r) => regraValeEm(r, data))
+      if (teriaExpediente) {
+        turnos.push({ data, tipo: 'MANHA', pessoas: [], capacidade: 0, santaCeia: true, rotulo: evento.nome })
       }
       continue
     }
@@ -84,12 +127,15 @@ export function construirGrade(op: OpcoesMalha): Turno[] {
     for (const regra of op.malha.regras) {
       if (!regraValeEm(regra, data)) continue
       for (const tipo of regra.turnos) {
+        const bloqueadoPeloEvento = evento != null && turnoNaJanela(tipo, regra.horaInicio, regra.horaFim, evento)
         turnos.push({
           data,
           tipo,
           pessoas: [],
-          capacidade: regra.capacidade ?? op.capacidadePadrao,
-          ...(regra.rotulo ? { rotulo: regra.rotulo } : {}),
+          capacidade: bloqueadoPeloEvento ? 0 : (regra.capacidade ?? op.capacidadePadrao),
+          ...(bloqueadoPeloEvento ? { santaCeia: true as const, rotulo: evento!.nome } : regra.rotulo ? { rotulo: regra.rotulo } : {}),
+          ...(regra.horaInicio ? { horaInicio: regra.horaInicio } : {}),
+          ...(regra.horaFim ? { horaFim: regra.horaFim } : {}),
         })
       }
     }

@@ -21,7 +21,7 @@ import type { Configuracao, Pessoa } from './tipos'
 
 /** Um contexto mínimo com cota anterior, para exercer D7 atravessando a fronteira. */
 const CONFIG_TETO: Configuracao = {
-  versao: 1, capacidadePadrao: 1, malhaPadrao: { regras: [] }, santaCeia: [],
+  versao: 1, capacidadePadrao: 1, malhaPadrao: { regras: [] }, eventosSemEscala: [],
   identidade: { titulo: 'T', subtitulo: '', logo: '', pessoa: { singular: 'Pessoa', plural: 'pessoas' } },
 }
 const validarComCota = (

@@ -21,7 +21,7 @@ const CONFIG: Configuracao = {
   versao: 1,
   capacidadePadrao: 1,
   malhaPadrao: { regras: [] },
-  santaCeia: [],
+  eventosSemEscala: [],
   identidade: { titulo: 'Teste', subtitulo: '', logo: '', pessoa: { singular: 'Pessoa', plural: 'pessoas' } },
 }
 

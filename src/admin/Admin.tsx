@@ -17,7 +17,7 @@ import { clsx } from 'clsx'
 import { abrirCofre, apagarCofre, cofreExiste, exportarCofre, gravarCofre, importarCofre, type Segredos } from './cofre'
 import { baixarPacoteManual, COMO_CRIAR_O_TOKEN, conferirToken, DESTINOS, historicoPublicacoes, lerDadosNoCommit, publicarDados, reverterPara, type Publicacao } from './github'
 import { completarConfig, retratoPublicado, type ConfigLida, type DadosPublicados } from '../dados/carregar'
-import type { ArquivoBlocos, ArquivoPessoas, Bloco, Configuracao, Pessoa, TipoTurno, Turno } from '../dominio/tipos'
+import type { ArquivoBlocos, ArquivoPessoas, Bloco, Configuracao, EventoSemEscala, Pessoa, TipoTurno, Turno } from '../dominio/tipos'
 import { ROTULO_TURNO } from '../dominio/tipos'
 import { idDoNome } from '../utils/nomes'
 import { normalizarTelefone, formatarTelefone } from '../utils/telefone'
@@ -1673,7 +1673,7 @@ const AbaGerar: React.FC<{
         inicio: deAgora, fim: ate,
         malha: config.malhaPadrao,
         capacidadePadrao: config.capacidadePadrao,
-        santaCeia: config.santaCeia,
+        eventosSemEscala: config.eventosSemEscala,
       })
     } catch (e) {
       setFalha(e instanceof Error ? e.message : String(e))
@@ -1813,9 +1813,17 @@ const AbaGerar: React.FC<{
    * ano **sem nenhuma Santa Ceia**: cada uma delas entraria como culto normal, com três pessoas
    * escaladas num dia em que vêm irmãos de outra congregação. Ninguém no sistema saberia.
    */
-  const [novaCeia, setNovaCeia] = useState('')
-  const ceiasNoPeriodo = (config.santaCeia ?? []).filter(
-    (d) => diferencaEmDias(de, d) >= 0 && diferencaEmDias(d, ate) >= 0,
+  /**
+   * 🔴 GENERALIZADO — S-068/S-069, 20/08/2026, regra máxima do dono: nome editável por evento (não
+   * mais "Santa Ceia" cravado), data editável (já era), e a escolha entre bloquear o DIA TODO ou só
+   * um HORÁRIO ESPECÍFICO (hora real, sempre Brasília — texto `HH:mm`, nunca `Date`, para não ter
+   * fuso nenhum para errar).
+   */
+  const [rascunhoEvento, setRascunhoEvento] = useState<{ nome: string; data: string; diaTodo: boolean; horaInicio: string; horaFim: string }>({
+    nome: '', data: '', diaTodo: true, horaInicio: '', horaFim: '',
+  })
+  const eventosNoPeriodo = (config.eventosSemEscala ?? []).filter(
+    (e) => diferencaEmDias(de, e.data) >= 0 && diferencaEmDias(e.data, ate) >= 0,
   )
 
   return (
@@ -1937,54 +1945,55 @@ const AbaGerar: React.FC<{
           ninguém, e cadastrá-la depois de gerar não muda a escala que já saiu.
         */}
         <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3">
-          <p className="text-sm font-semibold text-gray-700">Dias de Santa Ceia</p>
+          <p className="text-sm font-semibold text-gray-700">Dias sem escala</p>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            Nesses dias <strong>ninguém é escalado</strong> — vêm {config.identidade.pessoa.plural} de
-            outra congregação. Cadastre <strong>antes</strong> de gerar: depois, só gerando de novo.
+            Cada evento tem nome próprio (ex.: "Santa Ceia", "Manutenção do gerador") — bloqueia o
+            <strong> dia todo</strong> ou só um <strong>horário</strong> daquele dia, sempre horário de
+            Brasília. Cadastre <strong>antes</strong> de gerar: depois, só gerando de novo.
           </p>
 
-          {ceiasNoPeriodo.length === 0 && (
+          {eventosNoPeriodo.length === 0 && (
             <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
-              ⚠️ <strong>Nenhuma Santa Ceia cadastrada entre {formatarBR(de)} e {formatarBR(ate)}.</strong>{' '}
-              Se houver alguma nesse período e ela não estiver aqui, o dia entra como culto comum e o
-              sistema escala três pessoas nele.
+              ⚠️ <strong>Nenhum dia sem escala cadastrado entre {formatarBR(de)} e {formatarBR(ate)}.</strong>{' '}
+              Se houver algum nesse período e ele não estiver aqui, o dia entra como expediente comum.
             </div>
           )}
 
-          {(config.santaCeia ?? []).length > 0 && (
+          {(config.eventosSemEscala ?? []).length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {[...(config.santaCeia ?? [])].sort().map((d) => {
-                const passou = diferencaEmDias(d, hojeSaoPaulo()) > 0
+              {[...(config.eventosSemEscala ?? [])].sort((a, b) => (a.data < b.data ? -1 : 1)).map((evento) => {
+                const passou = diferencaEmDias(evento.data, hojeSaoPaulo()) > 0
                 /*
-                  🔴 CEIA EM DIA SEM CULTO É PROVAVELMENTE UM ENGANO — pedido do dono, 07/08/2026.
+                  🔴 EVENTO EM DIA SEM EXPEDIENTE É PROVAVELMENTE UM ENGANO — pedido do dono, 07/08/2026,
+                  generalizado em 20/08/2026 junto com o resto deste campo.
 
-                  Medido antes: uma Ceia cadastrada numa quinta-feira era silenciosamente inerte —
-                  coerente com "feriado em dia sem expediente", MAS um erro de digitação (queria o
-                  domingo 18, digitou quinta 15) deixava o domingo real desprotegido, sem nenhum
-                  sinal. Palavra dele: *"Aviso, não trava"* — a data fica, o aviso aparece. O rótulo
-                  âmbar diz o dia da semana para o engano se denunciar sozinho.
+                  Medido antes: um evento cadastrado num dia sem expediente na malha era silenciosamente
+                  inerte — coerente com "feriado em dia sem expediente mesmo", MAS um erro de digitação
+                  (queria domingo 18, digitou quinta 15) deixava o domingo real desprotegido, sem sinal
+                  nenhum. Palavra dele: *"Aviso, não trava"* — a data fica, o aviso aparece.
                 */
-                const semCulto = !diaTemCulto(d, config.malhaPadrao)
+                const semExpediente = !diaTemCulto(evento.data, config.malhaPadrao)
                 return (
                   <span
-                    key={d}
+                    key={evento.data}
                     title={
-                      semCulto
-                        ? 'Esta data não tem culto na malha — a Ceia aqui não muda nada. Confira se não é engano de digitação.'
-                        : passou ? 'Já passou — fica registrada, e o histórico não se reescreve' : 'Cadastrada'
+                      semExpediente
+                        ? 'Esta data não tem expediente na malha — este evento aqui não muda nada. Confira se não é engano de digitação.'
+                        : passou ? 'Já passou — fica registrado, e o histórico não se reescreve' : 'Cadastrado'
                     }
                     className={clsx(
                       'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold',
-                      semCulto ? 'border-amber-300 bg-amber-50 text-amber-900'
+                      semExpediente ? 'border-amber-300 bg-amber-50 text-amber-900'
                         : passou ? 'border-gray-200 bg-white text-gray-400' : 'border-red-200 bg-red-50 text-red-800',
                     )}
                   >
-                    {formatarBR(d)}
-                    {semCulto && <em className="font-normal">⚠️ {NOMES_DIA[diaDaSemana(d)]} — sem culto na malha</em>}
-                    {!semCulto && passou && <em className="font-normal">(passou)</em>}
+                    {evento.nome} — {formatarBR(evento.data)}
+                    {evento.diaTodo ? ' · dia todo' : ` · ${evento.horaInicio}–${evento.horaFim}`}
+                    {semExpediente && <em className="font-normal"> ⚠️ {NOMES_DIA[diaDaSemana(evento.data)]} — sem expediente na malha</em>}
+                    {!semExpediente && passou && <em className="font-normal"> (passou)</em>}
                     <button
-                      title="Tira esta data da lista"
-                      onClick={() => aoMudarConfig({ ...config, santaCeia: (config.santaCeia ?? []).filter((x) => x !== d) })}
+                      title="Tira este evento da lista"
+                      onClick={() => aoMudarConfig({ ...config, eventosSemEscala: (config.eventosSemEscala ?? []).filter((x) => x !== evento) })}
                       className="ml-0.5 text-current opacity-50 hover:opacity-100"
                     >
                       ✕
@@ -1995,39 +2004,101 @@ const AbaGerar: React.FC<{
             </div>
           )}
 
-          <div className="mt-3 flex flex-wrap items-end gap-2">
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {/*
-              🔴 Este campo nasceu SEM rótulo (05/08/2026) — só com `title`, que o leitor de tela lê
-              tarde e que nenhum localizador por rótulo alcança. Quem pagou não foi só quem usa
-              leitor de tela: o validador de "Gerar" procurava os campos de data POR POSIÇÃO, este
-              entrou no meio, e a data da ausência foi digitada aqui dentro. A ausência era recusada
-              — corretamente — e o teste acusava a tela errada.
-
-              A lição vale para todo campo novo: **campo sem rótulo é campo invisível** — para quem
-              não enxerga e para quem mede.
+              🔴 Este campo nasceu SEM rótulo (05/08/2026) — a lição vale para todo campo novo: campo
+              sem rótulo é campo invisível, para quem não enxerga e para quem mede.
             */}
             <label className="text-xs text-gray-500">
-              data da Santa Ceia
+              Nome do evento
               <input
-                id="nova-santa-ceia"
-                name="nova-santa-ceia"
-                type="date"
-                value={novaCeia}
-                title="A data de uma Santa Ceia"
-                onChange={(e) => setNovaCeia(e.target.value)}
-                className="mt-1 block rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                id="novo-evento-nome"
+                name="novo-evento-nome"
+                type="text"
+                placeholder='Ex.: "Santa Ceia", "Manutenção"'
+                value={rascunhoEvento.nome}
+                onChange={(e) => setRascunhoEvento({ ...rascunhoEvento, nome: e.target.value })}
+                className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
               />
             </label>
+            <label className="text-xs text-gray-500">
+              Data
+              <input
+                id="novo-evento-data"
+                name="novo-evento-data"
+                type="date"
+                value={rascunhoEvento.data}
+                onChange={(e) => setRascunhoEvento({ ...rascunhoEvento, data: e.target.value })}
+                className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+              />
+            </label>
+
+            <div className="sm:col-span-2 flex items-center gap-4">
+              <label className="inline-flex items-center gap-1.5 text-xs text-gray-600">
+                <input
+                  type="radio"
+                  name="novo-evento-escopo"
+                  checked={rascunhoEvento.diaTodo}
+                  onChange={() => setRascunhoEvento({ ...rascunhoEvento, diaTodo: true })}
+                />
+                Dia todo
+              </label>
+              <label className="inline-flex items-center gap-1.5 text-xs text-gray-600">
+                <input
+                  type="radio"
+                  name="novo-evento-escopo"
+                  checked={!rascunhoEvento.diaTodo}
+                  onChange={() => setRascunhoEvento({ ...rascunhoEvento, diaTodo: false })}
+                />
+                Só um horário (Brasília)
+              </label>
+            </div>
+
+            {!rascunhoEvento.diaTodo && (
+              <>
+                <label className="text-xs text-gray-500">
+                  Das
+                  <input
+                    id="novo-evento-hora-inicio"
+                    name="novo-evento-hora-inicio"
+                    type="time"
+                    value={rascunhoEvento.horaInicio}
+                    onChange={(e) => setRascunhoEvento({ ...rascunhoEvento, horaInicio: e.target.value })}
+                    className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                  />
+                </label>
+                <label className="text-xs text-gray-500">
+                  Até
+                  <input
+                    id="novo-evento-hora-fim"
+                    name="novo-evento-hora-fim"
+                    type="time"
+                    value={rascunhoEvento.horaFim}
+                    onChange={(e) => setRascunhoEvento({ ...rascunhoEvento, horaFim: e.target.value })}
+                    className="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                  />
+                </label>
+              </>
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
-              title="Acrescenta a data. Vale na próxima geração"
+              title="Acrescenta o evento. Vale na próxima geração"
               onClick={() => {
-                if (!novaCeia || (config.santaCeia ?? []).includes(novaCeia)) return
-                aoMudarConfig({ ...config, santaCeia: [...(config.santaCeia ?? []), novaCeia].sort() })
-                setNovaCeia('')
+                const { nome, data, diaTodo, horaInicio, horaFim } = rascunhoEvento
+                if (!nome.trim() || !data) return
+                if (!diaTodo && (!horaInicio || !horaFim)) return
+                if ((config.eventosSemEscala ?? []).some((e) => e.data === data)) return
+                const novo: EventoSemEscala = diaTodo
+                  ? { nome: nome.trim(), data, diaTodo: true }
+                  : { nome: nome.trim(), data, diaTodo: false, horaInicio, horaFim }
+                aoMudarConfig({ ...config, eventosSemEscala: [...(config.eventosSemEscala ?? []), novo] })
+                setRascunhoEvento({ nome: '', data: '', diaTodo: true, horaInicio: '', horaFim: '' })
               }}
               className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
             >
-              Acrescentar Santa Ceia
+              Acrescentar evento
             </button>
             <span className="text-xs text-gray-500">
               vale na próxima geração · vai para o ar quando você publicar

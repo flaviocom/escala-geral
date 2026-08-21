@@ -100,12 +100,18 @@ export const ScheduleTable: React.FC<ScheduleTableProps> = ({
     Agora o rótulo do dado manda, e a segunda linha só aparece quando ele existe. Uma escala sem
     ensaio nenhum não imprime a palavra em lugar nenhum.
   */
-  const ShiftBadge = ({ type, rotulo }: { type: string; rotulo?: string }) => {
+  const ShiftBadge = ({ type, rotulo, horaInicio, horaFim }: { type: string; rotulo?: string; horaInicio?: string; horaFim?: string }) => {
     if (type === 'SANTA_CEIA') {
+      /*
+        🔴 "SANTA CEIA" CRAVADA AQUI — achado ao vivo pelo Flavio, 20/08/2026, testando uma escala
+        de segurança predial. O nome do evento já atravessa a ponte (`Shift.rotulo`, corrigido em
+        05/08 para outros turnos) mas ESTE branch retornava antes de chegar lá — "escapa por
+        acaso", como o comentário abaixo já confessava. Agora usa o nome real do evento.
+      */
       return (
         <span className="px-2 py-1 inline-flex items-center gap-1 text-[10px] font-bold rounded-full bg-red-50 text-red-700 border border-red-200 uppercase tracking-tight">
           <AlertCircle className="h-3 w-3" />
-          SANTA CEIA
+          {rotulo || 'DIA SEM ESCALA'}
         </span>
       );
     }
@@ -131,6 +137,10 @@ export const ScheduleTable: React.FC<ScheduleTableProps> = ({
       imagem mostrando a mesma coisa certa ao lado. Fechar a ponte que doeu e deixar a outra é o
       defeito de fonte dupla com outro nome.
     */
+    // Hora real, quando a malha a define — regra máxima do dono, 20/08/2026: "se eu colocar hora,
+    // você tem que conseguir controlar a hora exata, exibir na escala". Ausente = só o período.
+    const hora = horaInicio ? (horaFim ? `${horaInicio}–${horaFim}` : horaInicio) : null;
+
     if (rotulo && rotulo !== type) {
       return (
         <div className={clsx('flex flex-col items-center justify-center rounded-lg border px-3 py-1', config.bg, config.border)}>
@@ -144,6 +154,7 @@ export const ScheduleTable: React.FC<ScheduleTableProps> = ({
           <span className={clsx('text-[10px] font-bold uppercase mt-0.5 leading-none tracking-wider whitespace-pre-line text-center', config.text)}>
             {rotulo}
           </span>
+          {hora && <span className={clsx('text-[9px] font-medium mt-0.5 leading-none tabular-nums', config.text)}>{hora}</span>}
         </div>
       );
     }
@@ -155,6 +166,7 @@ export const ScheduleTable: React.FC<ScheduleTableProps> = ({
       )}>
         <Icon className="h-3 w-3" />
         {type}
+        {hora && <span className="font-medium normal-case tabular-nums">· {hora}</span>}
       </span>
     );
   };
@@ -240,7 +252,7 @@ export const ScheduleTable: React.FC<ScheduleTableProps> = ({
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-4">
-                        <ShiftBadge type={shift.type} rotulo={shift.rotulo} />
+                        <ShiftBadge type={shift.type} rotulo={shift.rotulo} horaInicio={shift.horaInicio} horaFim={shift.horaFim} />
                         {shift.type === 'SANTA_CEIA' && (
                           <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-ping" />
                         )}

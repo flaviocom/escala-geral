@@ -256,7 +256,8 @@ export function conferirPorFora(
   {
     const furos: string[] = []
     const dentro = (d: DataISO) => diferencaEmDias(bloco.inicio, d) >= 0 && diferencaEmDias(d, bloco.fim) >= 0
-    const canonicas = config.santaCeia.filter(dentro)
+    // Só DIA TODO — evento de horário específico bloqueia só parte do dia, de propósito (S-068/S-069).
+    const canonicas = config.eventosSemEscala.filter((e) => e.diaTodo).map((e) => e.data).filter(dentro)
     const marcadas = bloco.turnos.filter((t) => t.santaCeia)
     for (const t of marcadas) if (t.pessoas.length > 0) furos.push(`${formatarBR(t.data)} é dia sem escala e tem ${t.pessoas.length} pessoa(s)`)
     // Só cobra o calendário de bloco que o sistema gerou — o passado importado é o que já foi visto.

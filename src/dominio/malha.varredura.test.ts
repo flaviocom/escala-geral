@@ -63,7 +63,7 @@ function elencoAleatorio(rnd: () => number, n: number): Pessoa[] {
 const CONFIG_BASE: Omit<Configuracao, 'malhaPadrao'> = {
   versao: 1,
   capacidadePadrao: 2,
-  santaCeia: [],
+  eventosSemEscala: [],
   identidade: { titulo: 'Teste', subtitulo: 'Teste', logo: '', pessoa: { singular: 'Pessoa', plural: 'pessoas' } },
 }
 

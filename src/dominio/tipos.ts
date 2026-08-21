@@ -108,12 +108,16 @@ export interface RegraMalha {
   /** Capacidade específica desta regra. Ausente = `capacidadePadrao` da configuração. */
   capacidade?: number
   /**
-   * Horário real, só para EXIBIÇÃO na tela e na mensagem — S-068/S-069, 20/08/2026 (P4.w).
+   * Horário real, sempre Brasília — S-068/S-069, 20/08/2026, regra máxima do dono: *"se eu colocar
+   * um período, é o período. Se eu colocar hora, você tem que conseguir controlar a hora exata,
+   * exibir na escala e assim por diante."*
    *
-   * 🔴 NÃO participa do encaixe: quem decide em qual `Turno` (MANHA/TARDE/NOITE) uma pessoa cabe
-   * continua sendo só `turnos`. Mudar isso para hora real de verdade (ex.: dois turnos no mesmo dia
-   * que colidem por horário) é mudança de MOTOR, fora do escopo desta rodada — aqui o horário é
-   * texto informativo (`"09:00"`), livre, sem validação de formato.
+   * As duas formas COEXISTEM: `turnos` (o período — Manhã/Tarde/Noite) continua decidindo em qual
+   * `Turno` uma restrição de pessoa (`turnosPermitidos`) encaixa — isso não muda, é o nível grosso.
+   * Quando `horaInicio`/`horaFim` também estão preenchidos, eles viajam para cada `Turno` gerado
+   * (`construirGrade`) e são o que a TELA, a IMAGEM exportada e a MENSAGEM mostram — hora exata, não
+   * só "Manhã". Ausentes: o turno mostra só o período, como sempre foi. `HH:mm`, texto puro, nunca
+   * um `Date` — não há fuso para errar.
    */
   horaInicio?: string
   horaFim?: string
@@ -121,6 +125,25 @@ export interface RegraMalha {
 
 export interface Malha {
   regras: RegraMalha[]
+}
+
+/**
+ * Um dia sem escala — nome e data editáveis, e OU o dia inteiro OU só um horário real dentro dele.
+ *
+ * `horaInicio`/`horaFim` são `HH:mm`, sempre horário de Brasília — texto puro, nunca um `Date`
+ * (regra máxima do dono, 20/08/2026: "eu quero que você controle horas mesmo, com data e hora de
+ * Brasília, Brasil, sempre"). Guardar como string evita o defeito clássico de fuso: não há
+ * conversão nenhuma para errar.
+ */
+export interface EventoSemEscala {
+  /** Ex.: "Santa Ceia", "Manutenção do gerador", "Feriado municipal". */
+  nome: string
+  data: DataISO
+  /** `true` = ninguém é escalado no dia inteiro. `false` = só no intervalo abaixo. */
+  diaTodo: boolean
+  /** Obrigatório quando `diaTodo` é `false`. Turno que COMEÇA dentro de `[horaInicio, horaFim)` é bloqueado. */
+  horaInicio?: string
+  horaFim?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -135,7 +158,14 @@ export interface Turno {
   /** Quantas vagas este turno tem. */
   capacidade: number
   rotulo?: string
-  /** Santa Ceia: dia marcado, sem porteiros, e que não consome cota de ninguém. */
+  /**
+   * Horário real (`HH:mm`, sempre Brasília, nunca convertido) — quando a `RegraMalha` que gerou
+   * este turno tinha hora de início/fim definida. Ausente = o turno só tem o período (`tipo`),
+   * como sempre foi. Ver a nota em `RegraMalha` (mesma regra máxima).
+   */
+  horaInicio?: string
+  horaFim?: string
+  /** Dia sem escala: turno marcador, sem pessoas, que não consome cota de ninguém. */
   santaCeia?: true
 }
 
@@ -198,11 +228,16 @@ export interface Configuracao {
   capacidadePadrao: number
   malhaPadrao: Malha
   /**
-   * Datas de Santa Ceia. **Uma por ano**, decidida no início do ano, e pode estar vazia enquanto
-   * não for marcada. No dia marcado não se escala ninguém: irmãos de outra igreja atendem, e os
-   * daqui participam.
+   * Dias sem escala — generalização de "Santa Ceia" (o nome original, cravado, de quando este
+   * produto atendia só uma igreja) — S-068/S-069, 20/08/2026, regra máxima do dono: nome editável
+   * por evento, data editável, e a escolha entre bloquear o DIA TODO ou só um HORÁRIO ESPECÍFICO
+   * (hora real, controlada, sempre horário de Brasília — nunca convertida por fuso, é texto
+   * `HH:mm` puro, não `Date`, de propósito).
+   *
+   * Pode estar vazio. Cada evento é independente — datas diferentes podem ter nomes diferentes
+   * ("Santa Ceia" numa, "Manutenção do gerador" noutra).
    */
-  santaCeia: DataISO[]
+  eventosSemEscala: EventoSemEscala[]
   /**
    * ⏱️ QUEM É O DONO DESTA ESCALA — e por que isto existe antes de existir um segundo cliente.
    *

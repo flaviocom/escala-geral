@@ -41,7 +41,14 @@ const TURNO = {
   */
   'TARDE': { rotulo: 'TARDE', pilula: '#fff7ed', borda: '#fdba74', texto: '#c2410c', bloco: 'linear-gradient(160deg,#fb923c,#ea580c)' },
   'NOITE': { rotulo: 'NOITE', pilula: '#eef2ff', borda: '#c7d2fe', texto: '#4338ca', bloco: 'linear-gradient(160deg,#6366f1,#4f46e5)' },
-  'SANTA_CEIA': { rotulo: 'SANTA CEIA', pilula: '#fef2f2', borda: '#fca5a5', texto: '#b91c1c', bloco: 'linear-gradient(160deg,#ef4444,#b91c1c)' },
+  /*
+   * 🔴 "SANTA CEIA" cravado como o rótulo GENÉRICO do tipo — achado ao vivo pelo Flavio, 20/08/2026
+   * (S-068/S-069), testando uma escala de segurança predial. Este é só o rótulo de FALLBACK da
+   * legenda de cores; o nome real de CADA evento (`t.rotulo`, ex.: "Manutenção do gerador") já
+   * aparece como segunda linha no cartão do dia (ver abaixo) — mas a legenda de topo e o fallback
+   * quando não há nome específico não podiam continuar dizendo o nome de uma igreja.
+   */
+  'SANTA_CEIA': { rotulo: 'DIA SEM ESCALA', pilula: '#fef2f2', borda: '#fca5a5', texto: '#b91c1c', bloco: 'linear-gradient(160deg,#ef4444,#b91c1c)' },
 } satisfies Record<ShiftType, { rotulo: string; pilula: string; borda: string; texto: string; bloco: string }>
 
 const nomeDe = (id: string) => BROTHERS.find((b) => b.id === id)?.name ?? id
@@ -255,6 +262,12 @@ export function EscalaImagem({ shifts, geradoEm, porTurno = 3, identidade }: Dad
                     {t.rotulo && t.rotulo !== TURNO[t.type].rotulo
                       ? `${TURNO[t.type].rotulo}\n${t.rotulo}`
                       : TURNO[t.type].rotulo}
+                    {/* Hora real, quando a malha a define — regra máxima do dono, 20/08/2026. */}
+                    {t.horaInicio && (
+                      <div style={{ fontSize: 11, fontWeight: 700, marginTop: 2, opacity: 0.85 }}>
+                        {t.horaFim ? `${t.horaInicio}–${t.horaFim}` : t.horaInicio}
+                      </div>
+                    )}
                   </div>
                   {t.assignedBrothers.length === 0 ? (
                     <span style={{ fontSize: 20, fontWeight: 700, color: '#94a3b8' }}>

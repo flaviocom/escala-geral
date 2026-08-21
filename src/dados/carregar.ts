@@ -32,7 +32,7 @@ const CONFIG_PADRAO: Configuracao = {
   versao: 1,
   capacidadePadrao: 3,
   malhaPadrao: { regras: [] },
-  santaCeia: [],
+  eventosSemEscala: [],
   identidade: { titulo: 'Escala de plantões', subtitulo: '', logo: '', pessoa: { singular: 'Pessoa', plural: 'pessoas' } },
 }
 
@@ -65,7 +65,7 @@ export function completarConfig(lido: ConfigLida | null | undefined): Configurac
     versao: c.versao ?? CONFIG_PADRAO.versao,
     capacidadePadrao: c.capacidadePadrao ?? CONFIG_PADRAO.capacidadePadrao,
     malhaPadrao: c.malhaPadrao ?? CONFIG_PADRAO.malhaPadrao,
-    santaCeia: c.santaCeia ?? CONFIG_PADRAO.santaCeia,
+    eventosSemEscala: c.eventosSemEscala ?? CONFIG_PADRAO.eventosSemEscala,
     identidade: {
       titulo: id.titulo?.trim() || CONFIG_PADRAO.identidade.titulo,
       // O subtítulo pode ser vazio DE PROPÓSITO (nem todo cliente tem uma segunda linha), então
@@ -297,6 +297,8 @@ export function paraShifts(turnos: Turno[]): Shift[] {
     assignedBrothers: t.pessoas,
     // A etiqueta do dado, e não uma cravada no componente. Ver `Shift.rotulo`.
     ...(t.rotulo ? { rotulo: t.rotulo } : {}),
+    ...(t.horaInicio ? { horaInicio: t.horaInicio } : {}),
+    ...(t.horaFim ? { horaFim: t.horaFim } : {}),
   }))
 }
 

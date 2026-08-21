@@ -109,9 +109,10 @@ describe('a imagem desenha o que promete', () => {
     expect(html.split('>02<').length - 1).toBe(1)
   })
 
-  it('🔴 a Santa Ceia aparece SEM ninguém, e diz isso com o vocabulário do cliente', () => {
+  it('🔴 o dia sem escala aparece SEM ninguém, com rótulo genérico (não "Santa Ceia" cravado — S-068/S-069)', () => {
     const html = desenhar(CHEIA)
-    expect(html).toContain('SANTA CEIA')
+    expect(html).toContain('DIA SEM ESCALA')
+    expect(html).not.toContain('SANTA CEIA') // generalizado — nome do evento é dado, não rótulo de tipo
     expect(html).toMatch(/sem plantonistas escalados/)
   })
 

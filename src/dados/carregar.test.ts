@@ -26,7 +26,7 @@ describe('completarConfig — o arquivo publicado pode estar velho', () => {
       versao: 1,
       capacidadePadrao: 3,
       malhaPadrao: { regras: [] },
-      santaCeia: ['2026-08-16' as DataISO],
+      eventosSemEscala: [{ nome: 'Santa Ceia', data: '2026-08-16' as DataISO, diaTodo: true }],
       identidade: { titulo: 'Escala Porteiros', subtitulo: 'JD. São Luiz' },
     }
     const c = completarConfig(doAr)
@@ -35,7 +35,7 @@ describe('completarConfig — o arquivo publicado pode estar velho', () => {
     expect(c.identidade.pessoa.plural).toBe('pessoas')
     // E o que o arquivo TINHA continua valendo — completar não é sobrescrever.
     expect(c.identidade.titulo).toBe('Escala Porteiros')
-    expect(c.santaCeia).toEqual(['2026-08-16'])
+    expect(c.eventosSemEscala).toEqual([{ nome: 'Santa Ceia', data: '2026-08-16', diaTodo: true }])
   })
 
   it('🔴 a mescla é campo a campo, não rasa', () => {

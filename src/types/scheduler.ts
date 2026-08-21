@@ -54,6 +54,13 @@ export interface Shift {
    * "ENSAIO" escrito — configuração morta é pior que configuração ausente, porque parece que resolve.
    */
   rotulo?: string
+  /**
+   * Horário real (`HH:mm`, sempre Brasília) — S-068/S-069, 20/08/2026, regra máxima do dono: "se
+   * eu colocar hora, você tem que conseguir controlar a hora exata, exibir na escala". Ausente =
+   * o turno mostra só o período (`type`), como sempre foi.
+   */
+  horaInicio?: string
+  horaFim?: string
 }
 
 /**

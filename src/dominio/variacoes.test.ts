@@ -35,7 +35,7 @@ const CONFIG: Configuracao = {
   versao: 1,
   capacidadePadrao: 3,
   malhaPadrao: MALHA_ATUAL,
-  santaCeia: [],
+  eventosSemEscala: [],
   identidade: { titulo: 'Teste', subtitulo: 'Teste', logo: '', pessoa: { singular: 'Pessoa', plural: 'pessoas' } },
 }
 
@@ -51,14 +51,15 @@ function pessoas(n: number, restricoesDe: Record<number, Restricoes> = {}): Pess
 function cenario(elenco: Pessoa[], extra: { santaCeia?: string[]; capacidade?: number; inicio?: string; fim?: string } = {}) {
   const inicio = extra.inicio ?? PERIODO.inicio
   const fim = extra.fim ?? PERIODO.fim
+  const eventos = (extra.santaCeia ?? []).map((data) => ({ nome: 'Santa Ceia', data, diaTodo: true as const }))
   const grade = construirGrade({
     inicio, fim, malha: MALHA_ATUAL,
     capacidadePadrao: extra.capacidade ?? 3,
-    santaCeia: extra.santaCeia ?? [],
+    eventosSemEscala: eventos,
   })
   return {
     op: { inicio, fim, grade, pessoas: elenco, elenco: elenco.map((p) => p.id), malha: MALHA_ATUAL },
-    config: { ...CONFIG, capacidadePadrao: extra.capacidade ?? 3, santaCeia: extra.santaCeia ?? [] },
+    config: { ...CONFIG, capacidadePadrao: extra.capacidade ?? 3, eventosSemEscala: eventos },
   }
 }
 
